@@ -31,15 +31,15 @@ export function NotesList({ notes, selectedNoteId, onSelectNote, onNewNote }: No
     <div className="flex flex-col h-full border-r border-border bg-card">
       <div className="p-4 border-b border-border space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Notes</h2>
-          <Button onClick={onNewNote} size="sm" className="gradient-primary">
+          <h2 className="text-lg font-semibold">Cadernos</h2>
+          <Button onClick={onNewNote} size="sm" className="gradient-primary text-white">
             <Plus className="h-4 w-4" />
           </Button>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search notes..."
+            placeholder="Buscar anotações..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -52,7 +52,7 @@ export function NotesList({ notes, selectedNoteId, onSelectNote, onNewNote }: No
           <div className="flex flex-col items-center justify-center h-full p-8 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? 'No notes found' : 'No notes yet'}
+              {searchQuery ? 'Nenhuma anotação encontrada' : 'Nenhum caderno ainda'}
             </p>
           </div>
         ) : (

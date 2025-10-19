@@ -43,8 +43,8 @@ const Index = () => {
   const handleNewNote = () => {
     const newNote: Note = {
       id: crypto.randomUUID(),
-      title: 'Untitled Note',
-      content: '<p>Start writing...</p>',
+      title: 'Nova Anotação',
+      content: '<p>Comece a escrever...</p>',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       synced: false,
@@ -61,7 +61,7 @@ const Index = () => {
 
     const updatedNote: Note = {
       ...selectedNote,
-      title: title || 'Untitled Note',
+      title: title || 'Nova Anotação',
       content,
       updatedAt: Date.now(),
       synced: false,
@@ -96,8 +96,8 @@ const Index = () => {
     setContent('');
     
     toast({
-      title: 'Note deleted',
-      description: 'The note has been deleted successfully.',
+      title: 'Anotação excluída',
+      description: 'A anotação foi excluída com sucesso.',
     });
 
     if (navigator.onLine) {
@@ -143,11 +143,11 @@ const Index = () => {
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Note title..."
+                  placeholder="Título da anotação..."
                   className="text-xl font-semibold border-none shadow-none px-0 focus-visible:ring-0"
                 />
               ) : (
-                <h1 className="text-xl font-semibold">NotesSync</h1>
+                <h1 className="text-xl font-semibold">Caderno Escolar</h1>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -178,12 +178,12 @@ const Index = () => {
                 <div className="w-16 h-16 mx-auto gradient-primary rounded-2xl flex items-center justify-center shadow-glow">
                   <FileText className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-semibold">Welcome to NotesSync</h2>
+                <h2 className="text-2xl font-semibold">Bem-vindo ao Caderno Escolar</h2>
                 <p className="text-muted-foreground">
-                  Your offline-first note-taking app. Create a new note to get started, and your notes will sync automatically when you're online.
+                  Seu caderno digital para estudos. Crie uma nova anotação para começar, e tudo será sincronizado automaticamente quando você estiver online.
                 </p>
-                <Button onClick={handleNewNote} className="gradient-primary shadow-soft">
-                  Create Your First Note
+                <Button onClick={handleNewNote} className="gradient-primary text-white shadow-soft">
+                  Criar Primeira Anotação
                 </Button>
               </div>
             </div>
