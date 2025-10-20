@@ -1,18 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Note, getAllNotes, getNote, saveNote, deleteNote } from '@/lib/db';
+import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, saveNote, saveFolder, deleteNote, deleteFolder, Priority } from '@/lib/db';
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
 import { NoteEditor } from '@/components/NoteEditor';
 import { SyncIndicator } from '@/components/SyncIndicator';
+import { SettingsDialog } from '@/components/SettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Menu, FileText } from 'lucide-react';
+import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import TurndownService from 'turndown';
+import { ThemeProvider } from 'next-themes';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -21,14 +27,20 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   const loadNotes = useCallback(async () => {
-    const loadedNotes = await getAllNotes();
+    const loadedNotes = await getNotesByFolder(selectedFolderId);
     setNotes(loadedNotes);
+  }, [selectedFolderId]);
+
+  const loadFolders = useCallback(async () => {
+    const loadedFolders = await getAllFolders();
+    setFolders(loadedFolders);
   }, []);
 
   useEffect(() => {
     loadNotes();
+    loadFolders();
     syncNotes();
-  }, [loadNotes]);
+  }, [loadNotes, loadFolders]);
 
   const handleSelectNote = async (id: string) => {
     const note = await getNote(id);
@@ -43,8 +55,10 @@ const Index = () => {
   const handleNewNote = () => {
     const newNote: Note = {
       id: crypto.randomUUID(),
-      title: 'Untitled Note',
-      content: '<p>Start writing...</p>',
+      title: 'Nova Anotação',
+      content: '<p>Comece a escrever...</p>',
+      priority: 'medium',
+      folderId: selectedFolderId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       synced: false,
@@ -56,12 +70,42 @@ const Index = () => {
     if (isMobile) setIsSidebarOpen(false);
   };
 
+  const handleCreateFolder = async (name: string) => {
+    const newFolder: Folder = {
+      id: crypto.randomUUID(),
+      name,
+      createdAt: Date.now(),
+      synced: false,
+    };
+
+    await saveFolder(newFolder);
+    await loadFolders();
+    
+    toast({
+      title: 'Pasta criada',
+      description: `A pasta "${name}" foi criada com sucesso.`,
+    });
+  };
+
+  const handleDeleteFolder = async (id: string) => {
+    await deleteFolder(id);
+    await loadFolders();
+    if (selectedFolderId === id) {
+      setSelectedFolderId(undefined);
+    }
+    
+    toast({
+      title: 'Pasta excluída',
+      description: 'A pasta foi excluída com sucesso.',
+    });
+  };
+
   const handleSave = useCallback(async () => {
     if (!selectedNote) return;
 
     const updatedNote: Note = {
       ...selectedNote,
-      title: title || 'Untitled Note',
+      title: title || 'Nova Anotação',
       content,
       updatedAt: Date.now(),
       synced: false,
@@ -96,8 +140,8 @@ const Index = () => {
     setContent('');
     
     toast({
-      title: 'Note deleted',
-      description: 'The note has been deleted successfully.',
+      title: 'Anotação excluída',
+      description: 'A anotação foi excluída com sucesso.',
     });
 
     if (navigator.onLine) {
@@ -105,17 +149,78 @@ const Index = () => {
     }
   };
 
+  const handlePriorityChange = async (priority: Priority) => {
+    if (!selectedNote) return;
+
+    const updatedNote: Note = {
+      ...selectedNote,
+      priority,
+      updatedAt: Date.now(),
+      synced: false,
+    };
+
+    await saveNote(updatedNote);
+    await loadNotes();
+    setSelectedNote(updatedNote);
+
+    if (navigator.onLine) {
+      syncNotes();
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    if (!selectedNote) return;
+
+    const turndownService = new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced',
+    });
+
+    turndownService.addRule('taskList', {
+      filter: (node) => {
+        return node.nodeName === 'LI' && node.getAttribute('data-type') === 'taskItem';
+      },
+      replacement: (content, node: any) => {
+        const checkbox = node.querySelector('input[type="checkbox"]');
+        const checked = checkbox?.checked ? '[x]' : '[ ]';
+        return `- ${checked} ${content}\n`;
+      },
+    });
+
+    const markdown = turndownService.turndown(content);
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title || 'nota'}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Exportado!',
+      description: 'Nota exportada como arquivo Markdown.',
+    });
+  };
+
   const sidebar = (
     <NotesList
       notes={notes}
+      folders={folders}
+      selectedFolderId={selectedFolderId}
       selectedNoteId={selectedNote?.id}
       onSelectNote={handleSelectNote}
+      onSelectFolder={setSelectedFolderId}
       onNewNote={handleNewNote}
+      onCreateFolder={handleCreateFolder}
+      onDeleteFolder={handleDeleteFolder}
     />
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <div className="flex h-screen overflow-hidden bg-background">
       {isMobile ? (
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
           <SheetContent side="left" className="p-0 w-80">
@@ -143,24 +248,47 @@ const Index = () => {
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Note title..."
+                  placeholder="Título da anotação..."
                   className="text-xl font-semibold border-none shadow-none px-0 focus-visible:ring-0"
                 />
               ) : (
-                <h1 className="text-xl font-semibold">NotesSync</h1>
+                <h1 className="text-xl font-semibold">Caderno Escolar</h1>
               )}
             </div>
             <div className="flex items-center gap-3">
+              <SettingsDialog />
               <SyncIndicator />
               {selectedNote && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDelete}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <>
+                  <Select value={selectedNote.priority} onValueChange={handlePriorityChange}>
+                    <SelectTrigger className="w-32">
+                      <Flag className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Baixa</SelectItem>
+                      <SelectItem value="medium">Média</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                      <SelectItem value="urgent">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleExportMarkdown}
+                    title="Exportar como Markdown"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleDelete}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -178,12 +306,12 @@ const Index = () => {
                 <div className="w-16 h-16 mx-auto gradient-primary rounded-2xl flex items-center justify-center shadow-glow">
                   <FileText className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-semibold">Welcome to NotesSync</h2>
+                <h2 className="text-2xl font-semibold">Bem-vindo ao Caderno Escolar</h2>
                 <p className="text-muted-foreground">
-                  Your offline-first note-taking app. Create a new note to get started, and your notes will sync automatically when you're online.
+                  Seu caderno digital para estudos. Crie uma nova anotação para começar, e tudo será sincronizado automaticamente quando você estiver online.
                 </p>
-                <Button onClick={handleNewNote} className="gradient-primary shadow-soft">
-                  Create Your First Note
+                <Button onClick={handleNewNote} className="gradient-primary text-white shadow-soft">
+                  Criar Primeira Anotação
                 </Button>
               </div>
             </div>
@@ -191,6 +319,7 @@ const Index = () => {
         </main>
       </div>
     </div>
+    </ThemeProvider>
   );
 };
 
