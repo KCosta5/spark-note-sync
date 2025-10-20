@@ -1,9 +1,12 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
+export type Priority = 'low' | 'medium' | 'high' | 'urgent';
+
 export interface Note {
   id: string;
   title: string;
   content: string;
+  priority: Priority;
   createdAt: number;
   updatedAt: number;
   synced: boolean;
