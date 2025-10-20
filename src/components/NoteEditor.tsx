@@ -1,7 +1,9 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { useEffect } from 'react';
-import { Bold, Italic, List, ListOrdered } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface NoteEditorProps {
@@ -11,7 +13,13 @@ interface NoteEditorProps {
 
 export function NoteEditor({ content, onChange }: NoteEditorProps) {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+    ],
     content,
     editorProps: {
       attributes: {
@@ -65,6 +73,14 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
           className={editor.isActive('orderedList') ? 'bg-accent' : ''}
         >
           <ListOrdered className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleTaskList().run()}
+          className={editor.isActive('taskList') ? 'bg-accent' : ''}
+        >
+          <CheckSquare className="h-4 w-4" />
         </Button>
       </div>
       <EditorContent editor={editor} className="flex-1 overflow-auto" />
