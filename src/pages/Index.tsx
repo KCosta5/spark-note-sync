@@ -1,17 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Note, getAllNotes, getNote, saveNote, deleteNote, Priority } from '@/lib/db';
+import { Note, getAllNotes, getNote, saveNote, deleteNote } from '@/lib/db';
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
 import { NoteEditor } from '@/components/NoteEditor';
 import { SyncIndicator } from '@/components/SyncIndicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
+import { Trash2, Menu, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import TurndownService from 'turndown';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -45,9 +43,8 @@ const Index = () => {
   const handleNewNote = () => {
     const newNote: Note = {
       id: crypto.randomUUID(),
-      title: 'Nova Anotação',
-      content: '<p>Comece a escrever...</p>',
-      priority: 'medium',
+      title: 'Untitled Note',
+      content: '<p>Start writing...</p>',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       synced: false,
@@ -64,7 +61,7 @@ const Index = () => {
 
     const updatedNote: Note = {
       ...selectedNote,
-      title: title || 'Nova Anotação',
+      title: title || 'Untitled Note',
       content,
       updatedAt: Date.now(),
       synced: false,
@@ -99,68 +96,13 @@ const Index = () => {
     setContent('');
     
     toast({
-      title: 'Anotação excluída',
-      description: 'A anotação foi excluída com sucesso.',
+      title: 'Note deleted',
+      description: 'The note has been deleted successfully.',
     });
 
     if (navigator.onLine) {
       syncNotes();
     }
-  };
-
-  const handlePriorityChange = async (priority: Priority) => {
-    if (!selectedNote) return;
-
-    const updatedNote: Note = {
-      ...selectedNote,
-      priority,
-      updatedAt: Date.now(),
-      synced: false,
-    };
-
-    await saveNote(updatedNote);
-    await loadNotes();
-    setSelectedNote(updatedNote);
-
-    if (navigator.onLine) {
-      syncNotes();
-    }
-  };
-
-  const handleExportMarkdown = () => {
-    if (!selectedNote) return;
-
-    const turndownService = new TurndownService({
-      headingStyle: 'atx',
-      codeBlockStyle: 'fenced',
-    });
-
-    turndownService.addRule('taskList', {
-      filter: (node) => {
-        return node.nodeName === 'LI' && node.getAttribute('data-type') === 'taskItem';
-      },
-      replacement: (content, node: any) => {
-        const checkbox = node.querySelector('input[type="checkbox"]');
-        const checked = checkbox?.checked ? '[x]' : '[ ]';
-        return `- ${checked} ${content}\n`;
-      },
-    });
-
-    const markdown = turndownService.turndown(content);
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${title || 'nota'}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: 'Exportado!',
-      description: 'Nota exportada como arquivo Markdown.',
-    });
   };
 
   const sidebar = (
@@ -201,46 +143,24 @@ const Index = () => {
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Título da anotação..."
+                  placeholder="Note title..."
                   className="text-xl font-semibold border-none shadow-none px-0 focus-visible:ring-0"
                 />
               ) : (
-                <h1 className="text-xl font-semibold">Caderno Escolar</h1>
+                <h1 className="text-xl font-semibold">NotesSync</h1>
               )}
             </div>
             <div className="flex items-center gap-3">
               <SyncIndicator />
               {selectedNote && (
-                <>
-                  <Select value={selectedNote.priority} onValueChange={handlePriorityChange}>
-                    <SelectTrigger className="w-32">
-                      <Flag className="h-4 w-4 mr-2" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Baixa</SelectItem>
-                      <SelectItem value="medium">Média</SelectItem>
-                      <SelectItem value="high">Alta</SelectItem>
-                      <SelectItem value="urgent">Urgente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleExportMarkdown}
-                    title="Exportar como Markdown"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDelete}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDelete}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               )}
             </div>
           </div>
@@ -258,12 +178,12 @@ const Index = () => {
                 <div className="w-16 h-16 mx-auto gradient-primary rounded-2xl flex items-center justify-center shadow-glow">
                   <FileText className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-semibold">Bem-vindo ao Caderno Escolar</h2>
+                <h2 className="text-2xl font-semibold">Welcome to NotesSync</h2>
                 <p className="text-muted-foreground">
-                  Seu caderno digital para estudos. Crie uma nova anotação para começar, e tudo será sincronizado automaticamente quando você estiver online.
+                  Your offline-first note-taking app. Create a new note to get started, and your notes will sync automatically when you're online.
                 </p>
-                <Button onClick={handleNewNote} className="gradient-primary text-white shadow-soft">
-                  Criar Primeira Anotação
+                <Button onClick={handleNewNote} className="gradient-primary shadow-soft">
+                  Create Your First Note
                 </Button>
               </div>
             </div>

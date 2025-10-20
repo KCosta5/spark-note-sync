@@ -8,107 +8,107 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 220 18% 97%;
-    --foreground: 222 47% 11%;
+    --background: 220 25% 97%;
+    --foreground: 220 13% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 220 13% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 220 13% 13%;
 
-    --primary: 217 91% 60%;
+    --primary: 252 83% 57%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    --primary-glow: 252 83% 67%;
 
-    --secondary: 142 76% 36%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 220 15% 95%;
+    --secondary-foreground: 220 13% 13%;
 
-    --muted: 220 14% 93%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 220 15% 95%;
+    --muted-foreground: 220 10% 46%;
 
-    --accent: 142 76% 36%;
+    --accent: 268 83% 57%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 252 83% 57%;
 
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(142 76% 36%));
-    --gradient-subtle: linear-gradient(180deg, hsl(220 18% 99%), hsl(220 18% 97%));
+    --gradient-primary: linear-gradient(135deg, hsl(252 83% 57%), hsl(268 83% 57%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220 25% 99%), hsl(220 25% 97%));
     
-    --shadow-soft: 0 2px 6px hsl(215 25% 15% / 0.06);
-    --shadow-medium: 0 4px 12px hsl(215 25% 15% / 0.1);
-    --shadow-glow: 0 0 20px hsl(210 70% 45% / 0.12);
+    --shadow-soft: 0 2px 8px hsl(220 13% 13% / 0.05);
+    --shadow-medium: 0 4px 16px hsl(220 13% 13% / 0.08);
+    --shadow-glow: 0 0 24px hsl(252 83% 57% / 0.15);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 210 70% 45%;
+    --sidebar-foreground: 220 13% 13%;
+    --sidebar-primary: 252 83% 57%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 15% 96%;
-    --sidebar-accent-foreground: 215 25% 15%;
-    --sidebar-border: 210 15% 88%;
-    --sidebar-ring: 210 70% 45%;
+    --sidebar-accent: 220 15% 97%;
+    --sidebar-accent-foreground: 220 13% 13%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 252 83% 57%;
   }
 
   .dark {
     --background: 222 47% 11%;
-    --foreground: 220 18% 97%;
+    --foreground: 210 40% 98%;
 
-    --card: 222 40% 15%;
-    --card-foreground: 220 18% 97%;
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 222 40% 15%;
-    --popover-foreground: 220 18% 97%;
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 252 83% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    --primary-glow: 252 83% 70%;
 
-    --secondary: 142 76% 36%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 222 35% 18%;
-    --muted-foreground: 220 9% 65%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 142 76% 36%;
+    --accent: 268 83% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 220 18% 97%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 222 35% 22%;
-    --input: 222 35% 22%;
-    --ring: 217 91% 60%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 252 83% 60%;
 
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(142 76% 36%));
-    --gradient-subtle: linear-gradient(180deg, hsl(222 47% 13%), hsl(222 47% 11%));
+    --gradient-primary: linear-gradient(135deg, hsl(252 83% 60%), hsl(268 83% 60%));
+    --gradient-subtle: linear-gradient(180deg, hsl(222 47% 12%), hsl(222 47% 11%));
     
-    --shadow-soft: 0 2px 6px hsl(0 0% 0% / 0.3);
-    --shadow-medium: 0 4px 12px hsl(0 0% 0% / 0.4);
-    --shadow-glow: 0 0 20px hsl(210 70% 55% / 0.2);
+    --shadow-soft: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-medium: 0 4px 16px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 24px hsl(252 83% 60% / 0.25);
 
-    --sidebar-background: 215 28% 12%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 210 70% 55%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 252 83% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 20%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 215 20% 22%;
-    --sidebar-ring: 210 70% 55%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-ring: 252 83% 60%;
   }
 }
 
@@ -151,95 +151,4 @@ All colors MUST be HSL.
   .transition-smooth {
     transition: var(--transition-smooth);
   }
-}
-
-/* TipTap Editor Styles */
-.ProseMirror {
-  outline: none;
-}
-
-.ProseMirror table {
-  border-collapse: collapse;
-  table-layout: fixed;
-  width: 100%;
-  margin: 1rem 0;
-  overflow: hidden;
-}
-
-.ProseMirror td,
-.ProseMirror th {
-  min-width: 1em;
-  border: 2px solid hsl(var(--border));
-  padding: 0.5rem;
-  vertical-align: top;
-  box-sizing: border-box;
-  position: relative;
-}
-
-.ProseMirror th {
-  font-weight: bold;
-  text-align: left;
-  background-color: hsl(var(--muted));
-}
-
-.ProseMirror .selectedCell:after {
-  z-index: 2;
-  position: absolute;
-  content: "";
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: hsl(var(--accent) / 0.2);
-  pointer-events: none;
-}
-
-.ProseMirror pre {
-  background: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  font-family: 'JetBrainsMono', 'Courier New', monospace;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  margin: 1rem 0;
-}
-
-.ProseMirror code {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  padding: 0.2em 0.4em;
-  border-radius: 0.25rem;
-  font-size: 0.9em;
-}
-
-.ProseMirror pre code {
-  background: none;
-  padding: 0;
-  font-size: inherit;
-}
-
-.ProseMirror blockquote {
-  border-left: 3px solid hsl(var(--primary));
-  padding-left: 1rem;
-  margin-left: 0;
-  font-style: italic;
-}
-
-.ProseMirror ul[data-type="taskList"] {
-  list-style: none;
-  padding: 0;
-}
-
-.ProseMirror ul[data-type="taskList"] li {
-  display: flex;
-  align-items: flex-start;
-}
-
-.ProseMirror ul[data-type="taskList"] li > label {
-  flex: 0 0 auto;
-  margin-right: 0.5rem;
-  user-select: none;
-}
-
-.ProseMirror ul[data-type="taskList"] li > div {
-  flex: 1 1 auto;
 }
