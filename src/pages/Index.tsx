@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Note, getAllNotes, getNote, saveNote, deleteNote, Priority } from '@/lib/db';
+import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, saveNote, saveFolder, deleteNote, deleteFolder, Priority } from '@/lib/db';
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
 import { NoteEditor } from '@/components/NoteEditor';
 import { SyncIndicator } from '@/components/SyncIndicator';
+import { SettingsDialog } from '@/components/SettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
@@ -12,9 +13,12 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TurndownService from 'turndown';
+import { ThemeProvider } from 'next-themes';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -23,14 +27,20 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   const loadNotes = useCallback(async () => {
-    const loadedNotes = await getAllNotes();
+    const loadedNotes = await getNotesByFolder(selectedFolderId);
     setNotes(loadedNotes);
+  }, [selectedFolderId]);
+
+  const loadFolders = useCallback(async () => {
+    const loadedFolders = await getAllFolders();
+    setFolders(loadedFolders);
   }, []);
 
   useEffect(() => {
     loadNotes();
+    loadFolders();
     syncNotes();
-  }, [loadNotes]);
+  }, [loadNotes, loadFolders]);
 
   const handleSelectNote = async (id: string) => {
     const note = await getNote(id);
@@ -48,6 +58,7 @@ const Index = () => {
       title: 'Nova Anotação',
       content: '<p>Comece a escrever...</p>',
       priority: 'medium',
+      folderId: selectedFolderId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       synced: false,
@@ -57,6 +68,36 @@ const Index = () => {
     setTitle(newNote.title);
     setContent(newNote.content);
     if (isMobile) setIsSidebarOpen(false);
+  };
+
+  const handleCreateFolder = async (name: string) => {
+    const newFolder: Folder = {
+      id: crypto.randomUUID(),
+      name,
+      createdAt: Date.now(),
+      synced: false,
+    };
+
+    await saveFolder(newFolder);
+    await loadFolders();
+    
+    toast({
+      title: 'Pasta criada',
+      description: `A pasta "${name}" foi criada com sucesso.`,
+    });
+  };
+
+  const handleDeleteFolder = async (id: string) => {
+    await deleteFolder(id);
+    await loadFolders();
+    if (selectedFolderId === id) {
+      setSelectedFolderId(undefined);
+    }
+    
+    toast({
+      title: 'Pasta excluída',
+      description: 'A pasta foi excluída com sucesso.',
+    });
   };
 
   const handleSave = useCallback(async () => {
@@ -166,14 +207,20 @@ const Index = () => {
   const sidebar = (
     <NotesList
       notes={notes}
+      folders={folders}
+      selectedFolderId={selectedFolderId}
       selectedNoteId={selectedNote?.id}
       onSelectNote={handleSelectNote}
+      onSelectFolder={setSelectedFolderId}
       onNewNote={handleNewNote}
+      onCreateFolder={handleCreateFolder}
+      onDeleteFolder={handleDeleteFolder}
     />
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <div className="flex h-screen overflow-hidden bg-background">
       {isMobile ? (
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
           <SheetContent side="left" className="p-0 w-80">
@@ -209,6 +256,7 @@ const Index = () => {
               )}
             </div>
             <div className="flex items-center gap-3">
+              <SettingsDialog />
               <SyncIndicator />
               {selectedNote && (
                 <>
@@ -271,6 +319,7 @@ const Index = () => {
         </main>
       </div>
     </div>
+    </ThemeProvider>
   );
 };
 

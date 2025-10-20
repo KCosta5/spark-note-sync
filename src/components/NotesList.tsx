@@ -1,19 +1,35 @@
-import { Note, Priority } from '@/lib/db';
-import { Plus, Search, FileText, Trash2 } from 'lucide-react';
+import { Note, Priority, Folder } from '@/lib/db';
+import { Plus, Search, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { FolderManager } from '@/components/FolderManager';
 import { useState } from 'react';
 
 interface NotesListProps {
   notes: Note[];
+  folders: Folder[];
+  selectedFolderId?: string;
   selectedNoteId?: string;
   onSelectNote: (id: string) => void;
+  onSelectFolder: (folderId?: string) => void;
   onNewNote: () => void;
+  onCreateFolder: (name: string) => void;
+  onDeleteFolder: (id: string) => void;
 }
 
-export function NotesList({ notes, selectedNoteId, onSelectNote, onNewNote }: NotesListProps) {
+export function NotesList({
+  notes,
+  folders,
+  selectedFolderId,
+  selectedNoteId,
+  onSelectNote,
+  onSelectFolder,
+  onNewNote,
+  onCreateFolder,
+  onDeleteFolder,
+}: NotesListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredNotes = notes.filter(note =>
@@ -27,19 +43,26 @@ export function NotesList({ notes, selectedNoteId, onSelectNote, onNewNote }: No
     return div.textContent?.slice(0, 100) || '';
   };
 
-  const getPriorityBadge = (priority: Priority) => {
+  const getPriorityBadge = (priority?: Priority) => {
     const variants = {
       low: { label: 'Baixa', className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20' },
       medium: { label: 'Média', className: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20' },
       high: { label: 'Alta', className: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20' },
       urgent: { label: 'Urgente', className: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20' },
     };
-    const variant = variants[priority];
+    const variant = variants[priority || 'medium'];
     return <Badge variant="outline" className={variant.className}>{variant.label}</Badge>;
   };
 
   return (
     <div className="flex flex-col h-full border-r border-border bg-card">
+      <FolderManager
+        folders={folders}
+        selectedFolderId={selectedFolderId}
+        onSelectFolder={onSelectFolder}
+        onCreateFolder={onCreateFolder}
+        onDeleteFolder={onDeleteFolder}
+      />
       <div className="p-4 border-b border-border space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Cadernos</h2>
