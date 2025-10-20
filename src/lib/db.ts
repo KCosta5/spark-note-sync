@@ -39,7 +39,10 @@ export async function getDB() {
 export async function getAllNotes(): Promise<Note[]> {
   const db = await getDB();
   const notes = await db.getAllFromIndex('notes', 'by-updated');
-  return notes.filter(note => !note.deleted).reverse();
+  return notes
+    .filter(note => !note.deleted)
+    .map(note => ({ ...note, priority: note.priority || 'medium' }))
+    .reverse();
 }
 
 export async function getNote(id: string): Promise<Note | undefined> {

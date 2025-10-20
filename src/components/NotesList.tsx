@@ -27,14 +27,14 @@ export function NotesList({ notes, selectedNoteId, onSelectNote, onNewNote }: No
     return div.textContent?.slice(0, 100) || '';
   };
 
-  const getPriorityBadge = (priority: Priority) => {
+  const getPriorityBadge = (priority?: Priority) => {
     const variants = {
       low: { label: 'Baixa', className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20' },
       medium: { label: 'Média', className: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20' },
       high: { label: 'Alta', className: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20' },
       urgent: { label: 'Urgente', className: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20' },
     };
-    const variant = variants[priority];
+    const variant = variants[priority || 'medium'];
     return <Badge variant="outline" className={variant.className}>{variant.label}</Badge>;
   };
 
