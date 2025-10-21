@@ -61,7 +61,7 @@ export async function getAllNotes(): Promise<Note[]> {
   const notes = await db.getAllFromIndex('notes', 'by-updated');
   return notes
     .filter(note => !note.deleted)
-    .map(note => ({ ...note, priority: note.priority || 'medium' }))
+    .map(note => ({ ...note, priority: (note.priority || 'medium') as Priority }))
     .reverse();
 }
 
@@ -127,6 +127,6 @@ export async function getNotesByFolder(folderId?: string): Promise<Note[]> {
   const allNotes = await db.getAllFromIndex('notes', 'by-updated');
   return allNotes
     .filter(note => !note.deleted && note.folderId === folderId)
-    .map(note => ({ ...note, priority: note.priority || 'medium' }))
+    .map(note => ({ ...note, priority: (note.priority || 'medium') as Priority }))
     .reverse();
 }
