@@ -32,28 +32,32 @@ export function NotesList({
 }: NotesListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredNotes = notes.filter(note =>
+const filteredNotes = useMemo(() => 
+  notes.filter(note =>
     note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     note.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ),
+  [notes, searchQuery]
+);
 
-  const getPreviewText = (html: string) => {
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    return div.textContent?.slice(0, 100) || '';
-  };
+const getPreviewText = (html: string) => {
+  const text = html.replace(/<[^>]+>/g, ''); // remove tags HTML
+  return text.slice(0, 100);
+};
 
-  const getPriorityBadge = (priority?: Priority) => {
-    const variants: Record<Priority, { label: string; className: string }> = {
-      low: { label: 'Baixa', className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20' },
-      medium: { label: 'Média', className: 'bg-yellow-500/10 text-white-700 dark:text-white-400 border-yellow-500/20' },
-      high: { label: 'Alta', className: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20' },
-      urgent: { label: 'Urgente', className: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20' },
-    };
-    const safePriority: Priority = priority || 'medium';
-    const variant = variants[safePriority];
-    return <Badge variant="outline" className={variant.className}>{variant.label}</Badge>;
-  };
+
+const PRIORITY_VARIANTS: Record<Priority, { label: string; className: string }> = {
+  low: { label: 'Baixa', className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20' },
+  medium: { label: 'Média', className: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20' },
+  high: { label: 'Alta', className: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20' },
+  urgent: { label: 'Urgente', className: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20' },
+};
+
+const getPriorityBadge = (priority: Priority = 'medium') => {
+  const variant = PRIORITY_VARIANTS[priority];
+  return <Badge variant="outline" className={variant.className}>{variant.label}</Badge>;
+};
+
 
   return (
     <div className="flex flex-col h-full border-r border-border bg-card">
@@ -93,28 +97,31 @@ export function NotesList({
         ) : (
           <div className="p-2">
             {filteredNotes.map((note) => (
-              <button
-                key={note.id}
-                onClick={() => onSelectNote(note.id)}
-                className="w-full text-left p-3 rounded-lg mb-2 transition-smooth hover:bg-accent"
-                style={selectedNoteId === note.id ? { backgroundColor: 'hsl(var(--accent))', boxShadow: 'var(--shadow-soft)' } : {}}
-              >
+ <button
+  key={note.id}
+  onClick={() => onSelectNote(note.id)}
+  className={`w-full text-left p-3 rounded-lg mb-2 transition-colors duration-150
+    hover:bg-accent hover:text-accent-foreground
+    ${selectedNoteId === note.id ? 'bg-accent text-accent-foreground shadow-sm' : 'bg-background'}
+  `}
+>
+  <div className="flex items-start justify-between gap-2 mb-1">
+    <h3 className="font-medium truncate flex-1">{note.title || 'Sem título'}</h3>
+    <div className="flex items-center gap-2 shrink-0">
+      {getPriorityBadge(note.priority)}
+      {!note.synced && (
+        <span className="h-2 w-2 rounded-full bg-primary" title="Não sincronizado" />
+      )}
+    </div>
+  </div>
+  <p className="text-sm text-muted-foreground line-clamp-2">
+    {getPreviewText(note.content)}
+  </p>
+  <p className="text-xs text-muted-foreground mt-1">
+    {formatDate(note.updatedAt)}
+  </p>
+</button>
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="font-medium truncate flex-1">{note.title || 'Sem título'}</h3>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {getPriorityBadge(note.priority)}
-                    {!note.synced && (
-                      <span className="h-2 w-2 rounded-full bg-primary" title="Não sincronizado" />
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {getPreviewText(note.content)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(note.updatedAt).toLocaleDateString()}
-                </p>
-              </button>
             ))}
           </div>
         )}
