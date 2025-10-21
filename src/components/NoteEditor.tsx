@@ -73,31 +73,30 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
       <div className="flex flex-wrap items-center gap-1 px-4 py-2 border-b border-border bg-muted/30">
         <div className="flex gap-1 mr-2">
           <Button
-  variant={viewMode === 'edit' ? 'default' : 'ghost'}
-  size="sm"
-  aria-label="Modo edição"
-  title="Modo Edição"
->
-  <Edit3 className="h-4 w-4" />
-</Button>
-<Button
-  variant={viewMode === 'split' ? 'default' : 'ghost'}
-  size="sm"
-  aria-label="Modo dividido"
-  title="Modo Split"
->
-  <Eye className="h-4 w-4 mr-1" />
-  <Edit3 className="h-4 w-4" />
-</Button>
-<Button
-  variant={viewMode === 'preview' ? 'default' : 'ghost'}
-  size="sm"
-  aria-label="Modo pré-visualização"
-  title="Modo Preview"
->
-  <Eye className="h-4 w-4" />
-</Button>
-
+            variant={viewMode === 'edit' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('edit')}
+            title="Modo Edição"
+          >
+            <Edit3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'split' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('split')}
+            title="Modo Split"
+          >
+            <Edit3 className="h-4 w-4 mr-1" />
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'preview' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('preview')}
+            title="Modo Preview"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
         </div>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
