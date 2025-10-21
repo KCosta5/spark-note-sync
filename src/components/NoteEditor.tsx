@@ -234,7 +234,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
   title="Inserir imagem"
   onClick={() => document.getElementById('image-upload')?.click()}
 >
-  🖼️
+<LinkIcon className="h-4 w-4" />
 </Button>
 <input
   id="image-upload"
