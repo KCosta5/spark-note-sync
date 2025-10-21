@@ -1,16 +1,10 @@
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
-import { Table } from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import CodeBlock from '@tiptap/extension-code-block';
-import { useEffect } from 'react';
-import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Quote, Code, Table as TableIcon } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 interface NoteEditorProps {
   content: string;
@@ -18,50 +12,99 @@ interface NoteEditorProps {
 }
 
 export function NoteEditor({ content, onChange }: NoteEditorProps) {
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        codeBlock: false,
-      }),
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableCell,
-      TableHeader,
-      CodeBlock,
-    ],
-    content,
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none max-w-none min-h-[300px] px-8 py-6',
-      },
-    },
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
-  });
+  const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
-    }
-  }, [content, editor]);
+  const insertMarkdown = useCallback((before: string, after: string = '', placeholder: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-  if (!editor) return null;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    const textToInsert = selectedText || placeholder;
+    
+    const newContent = 
+      content.substring(0, start) + 
+      before + textToInsert + after + 
+      content.substring(end);
+    
+    onChange(newContent);
+    
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + before.length + textToInsert.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  }, [content, onChange]);
+
+  const insertAtLineStart = useCallback((prefix: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const lineStart = content.lastIndexOf('\n', start - 1) + 1;
+    
+    const newContent = 
+      content.substring(0, lineStart) + 
+      prefix + 
+      content.substring(lineStart);
+    
+    onChange(newContent);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+    }, 0);
+  }, [content, onChange]);
+
+  const insertTable = useCallback(() => {
+    const table = '\n| Coluna 1 | Coluna 2 | Coluna 3 |\n|----------|----------|----------|\n| Célula 1 | Célula 2 | Célula 3 |\n| Célula 4 | Célula 5 | Célula 6 |\n\n';
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const newContent = content.substring(0, start) + table + content.substring(start);
+    onChange(newContent);
+  }, [content, onChange]);
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-wrap items-center gap-1 px-4 py-2 border-b border-border bg-muted/30">
+        <div className="flex gap-1 mr-2">
+          <Button
+            variant={viewMode === 'edit' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('edit')}
+            title="Modo Edição"
+          >
+            <Edit3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'split' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('split')}
+            title="Modo Split"
+          >
+            <Edit3 className="h-4 w-4 mr-1" />
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'preview' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('preview')}
+            title="Modo Preview"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+        
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={editor.isActive('heading', { level: 1 }) ? 'bg-accent' : ''}
+          onClick={() => insertAtLineStart('# ')}
           title="Título 1"
         >
           <Heading1 className="h-4 w-4" />
@@ -69,11 +112,18 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={editor.isActive('heading', { level: 2 }) ? 'bg-accent' : ''}
+          onClick={() => insertAtLineStart('## ')}
           title="Título 2"
         >
           <Heading2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => insertAtLineStart('### ')}
+          title="Título 3"
+        >
+          <Heading3 className="h-4 w-4" />
         </Button>
         
         <Separator orientation="vertical" className="h-6 mx-1" />
@@ -81,8 +131,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={editor.isActive('bold') ? 'bg-accent' : ''}
+          onClick={() => insertMarkdown('**', '**', 'negrito')}
           title="Negrito"
         >
           <Bold className="h-4 w-4" />
@@ -90,8 +139,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={editor.isActive('italic') ? 'bg-accent' : ''}
+          onClick={() => insertMarkdown('*', '*', 'itálico')}
           title="Itálico"
         >
           <Italic className="h-4 w-4" />
@@ -99,8 +147,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleCode().run()}
-          className={editor.isActive('code') ? 'bg-accent' : ''}
+          onClick={() => insertMarkdown('`', '`', 'código')}
           title="Código inline"
         >
           <Code className="h-4 w-4" />
@@ -111,8 +158,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={editor.isActive('bulletList') ? 'bg-accent' : ''}
+          onClick={() => insertAtLineStart('- ')}
           title="Lista"
         >
           <List className="h-4 w-4" />
@@ -120,8 +166,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={editor.isActive('orderedList') ? 'bg-accent' : ''}
+          onClick={() => insertAtLineStart('1. ')}
           title="Lista numerada"
         >
           <ListOrdered className="h-4 w-4" />
@@ -129,8 +174,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
-          className={editor.isActive('taskList') ? 'bg-accent' : ''}
+          onClick={() => insertAtLineStart('- [ ] ')}
           title="Checklist"
         >
           <CheckSquare className="h-4 w-4" />
@@ -141,8 +185,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={editor.isActive('blockquote') ? 'bg-accent' : ''}
+          onClick={() => insertAtLineStart('> ')}
           title="Citação"
         >
           <Quote className="h-4 w-4" />
@@ -150,8 +193,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={editor.isActive('codeBlock') ? 'bg-accent' : ''}
+          onClick={() => insertMarkdown('\n```\n', '\n```\n', 'código')}
           title="Bloco de código"
         >
           <Code className="h-5 w-5" />
@@ -159,13 +201,55 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          onClick={insertTable}
           title="Inserir tabela"
         >
           <TableIcon className="h-4 w-4" />
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => insertMarkdown('[', '](url)', 'texto do link')}
+          title="Link"
+        >
+          <LinkIcon className="h-4 w-4" />
+        </Button>
       </div>
-      <EditorContent editor={editor} className="flex-1 overflow-auto" />
+      
+      <div className={`flex-1 flex overflow-hidden ${viewMode === 'split' ? 'divide-x divide-border' : ''}`}>
+        {(viewMode === 'edit' || viewMode === 'split') && (
+          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col`}>
+            <Textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => onChange(e.target.value)}
+              className="flex-1 resize-none border-0 rounded-none font-mono text-sm p-6 focus-visible:ring-0 focus-visible:ring-offset-0"
+              placeholder="Digite seu markdown aqui..."
+            />
+          </div>
+        )}
+        
+        {(viewMode === 'preview' || viewMode === 'split') && (
+          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} overflow-auto p-6`}>
+            <article className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  input: ({ node, ...props }) => (
+                    <input 
+                      {...props} 
+                      disabled={false}
+                      className="cursor-pointer"
+                    />
+                  ),
+                }}
+              >
+                {content || '*Nenhum conteúdo ainda...*'}
+              </ReactMarkdown>
+            </article>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
