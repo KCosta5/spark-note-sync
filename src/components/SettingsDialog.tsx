@@ -1,4 +1,4 @@
-import { Settings, Moon, Sun } from 'lucide-react';
+import { Settings, Moon, Sun, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,9 +10,19 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useTheme } from 'next-themes';
+import { useCustomTheme, type ThemeColor } from '@/hooks/useCustomTheme';
 
 export function SettingsDialog() {
   const { theme, setTheme } = useTheme();
+  const { themeColor, setThemeColor } = useCustomTheme();
+
+  const themeColors: { value: ThemeColor; label: string; color: string }[] = [
+    { value: 'blue', label: 'Azul', color: 'bg-blue-500' },
+    { value: 'green', label: 'Verde', color: 'bg-green-500' },
+    { value: 'purple', label: 'Roxo', color: 'bg-purple-500' },
+    { value: 'orange', label: 'Laranja', color: 'bg-orange-500' },
+    { value: 'pink', label: 'Rosa', color: 'bg-pink-500' },
+  ];
 
   return (
     <Dialog>
@@ -30,7 +40,7 @@ export function SettingsDialog() {
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="space-y-3">
-            <Label>Tema</Label>
+            <Label>Modo</Label>
             <div className="flex gap-2">
               <Button
                 variant={theme === 'light' ? 'default' : 'outline'}
@@ -58,6 +68,29 @@ export function SettingsDialog() {
               >
                 Sistema
               </Button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Cor do Tema
+            </Label>
+            <div className="grid grid-cols-5 gap-2">
+              {themeColors.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => setThemeColor(color.value)}
+                  className={`relative h-12 rounded-md border-2 transition-all ${
+                    themeColor === color.value
+                      ? 'border-primary scale-110'
+                      : 'border-border hover:border-muted-foreground'
+                  }`}
+                  title={color.label}
+                >
+                  <div className={`absolute inset-1 rounded ${color.color}`} />
+                </button>
+              ))}
             </div>
           </div>
         </div>
