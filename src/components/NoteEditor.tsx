@@ -68,6 +68,19 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
     onChange(newContent);
   }, [content, onChange]);
 
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const imageMarkdown = `\n![${file.name}](${reader.result})\n`;
+    onChange(content + imageMarkdown);
+  };
+  reader.readAsDataURL(file);
+}, [content, onChange]);
+
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-wrap items-center gap-1 px-4 py-2 border-b border-border bg-muted/30">
@@ -215,6 +228,21 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         >
           <LinkIcon className="h-4 w-4" />
         </Button>
+<Button
+  variant="ghost"
+  size="sm"
+  title="Inserir imagem"
+  onClick={() => document.getElementById('image-upload')?.click()}
+>
+  🖼️
+</Button>
+<input
+  id="image-upload"
+  type="file"
+  accept="image/*"
+  className="hidden"
+  onChange={handleImageUpload}
+/>
       </div>
       
       <div className={`flex-1 flex overflow-hidden ${viewMode === 'split' ? 'divide-x divide-border' : ''}`}>
