@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
+import rehypeRaw from 'rehype-raw';
+import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +16,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
   const [isMobile, setIsMobile] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -76,6 +78,37 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
     onChange(newContent);
   }, [content, onChange]);
 
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione um arquivo de imagem');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      
+      const start = textarea.selectionStart;
+      const imageMarkdown = `\n![${file.name}](${base64})\n`;
+      const newContent = content.substring(0, start) + imageMarkdown + content.substring(start);
+      onChange(newContent);
+    };
+    reader.readAsDataURL(file);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [content, onChange]);
+
+  const insertHighlight = useCallback(() => {
+    insertMarkdown('==', '==', 'texto destacado');
+  }, [insertMarkdown]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
@@ -106,30 +139,38 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
     }
   }, [isMobile, viewMode]);
 
-  const renderedMarkdown = useMemo(() => (
-    <ReactMarkdown 
-      remarkPlugins={[remarkGfm]}
-      components={{
-        input: ({ node, ...props }) => (
-          <input 
-            {...props} 
-            disabled={false}
-            className="cursor-pointer"
-          />
-        ),
-        img: ({ node, ...props }) => (
-          <img 
-            {...props} 
-            className="rounded-lg my-4 max-w-full h-auto shadow-soft"
-            loading="lazy"
-            alt={props.alt || 'Imagem'}
-          />
-        ),
-      }}
-    >
-      {content || '*Nenhum conteúdo ainda...*'}
-    </ReactMarkdown>
-  ), [content]);
+  const renderedMarkdown = useMemo(() => {
+    const processedContent = (content || '*Nenhum conteúdo ainda...*').replace(/==(.*?)==/g, '<mark>$1</mark>');
+    
+    return (
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw]}
+        components={{
+          input: ({ node, ...props }) => (
+            <input 
+              {...props} 
+              disabled={false}
+              className="cursor-pointer"
+            />
+          ),
+          img: ({ node, ...props }) => (
+            <img 
+              {...props} 
+              className="rounded-lg my-4 max-w-full h-auto shadow-soft"
+              loading="lazy"
+              alt={props.alt || 'Imagem'}
+            />
+          ),
+          mark: ({ node, ...props }) => (
+            <mark className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded" {...props} />
+          ),
+        }}
+      >
+        {processedContent}
+      </ReactMarkdown>
+    );
+  }, [content]);
 
   return (
     <div className="flex flex-col h-full">
@@ -280,10 +321,25 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => insertMarkdown('![', '](url)', 'descrição da imagem')}
-          title="Imagem"
+          onClick={() => fileInputRef.current?.click()}
+          title="Upload de imagem"
         >
-          <ImageIcon className="h-4 w-4" />
+          <Upload className="h-4 w-4" />
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={insertHighlight}
+          title="Destacar texto"
+        >
+          <Highlighter className="h-4 w-4" />
         </Button>
       </div>
       
