@@ -146,6 +146,17 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
+          transformImageUri={(uri) => {
+    // Allow data URLs (base64 images)
+    if (uri.startsWith('data:image/')) return uri;
+    // Otherwise, sanitize relative or absolute URLs
+    try {
+      new URL(uri);
+      return uri;
+    } catch {
+      return '';
+    }
+  }}
         components={{
           input: ({ node, ...props }) => (
             <input 
