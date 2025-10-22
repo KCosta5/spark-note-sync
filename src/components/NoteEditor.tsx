@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +13,15 @@ interface NoteEditorProps {
 
 export function NoteEditor({ content, onChange }: NoteEditorProps) {
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
+  const [isMobile, setIsMobile] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const insertMarkdown = useCallback((before: string, after: string = '', placeholder: string = '') => {
     const textarea = textareaRef.current;
@@ -91,6 +99,13 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
     }
   }, [insertMarkdown]);
 
+  // Auto-switch to single pane on mobile
+  useEffect(() => {
+    if (isMobile && viewMode === 'split') {
+      setViewMode('edit');
+    }
+  }, [isMobile, viewMode]);
+
   const renderedMarkdown = useMemo(() => (
     <ReactMarkdown 
       remarkPlugins={[remarkGfm]}
@@ -102,6 +117,14 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
             className="cursor-pointer"
           />
         ),
+        img: ({ node, ...props }) => (
+          <img 
+            {...props} 
+            className="rounded-lg my-4 max-w-full h-auto shadow-soft"
+            loading="lazy"
+            alt={props.alt || 'Imagem'}
+          />
+        ),
       }}
     >
       {content || '*Nenhum conteúdo ainda...*'}
@@ -110,8 +133,8 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-wrap items-center gap-1 px-4 py-2 border-b border-border bg-muted/30">
-        <div className="flex gap-1 mr-2">
+      <div className="flex flex-wrap items-center gap-1 px-2 sm:px-4 py-2 border-b border-border bg-muted/30 overflow-x-auto">
+        <div className="flex gap-1 mr-2 shrink-0">
           <Button
             variant={viewMode === 'edit' ? 'default' : 'ghost'}
             size="sm"
@@ -254,25 +277,33 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         >
           <LinkIcon className="h-4 w-4" />
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => insertMarkdown('![', '](url)', 'descrição da imagem')}
+          title="Imagem"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
       </div>
       
-      <div className={`flex-1 flex overflow-hidden ${viewMode === 'split' ? 'divide-x divide-border' : ''}`}>
-        {(viewMode === 'edit' || viewMode === 'split') && (
-          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col`}>
+      <div className={`flex-1 flex overflow-hidden ${viewMode === 'split' && !isMobile ? 'divide-x divide-border' : 'flex-col'}`}>
+        {(viewMode === 'edit' || (viewMode === 'split' && !isMobile)) && (
+          <div className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} flex flex-col`}>
             <Textarea
               ref={textareaRef}
               value={content}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 resize-none border-0 rounded-none font-mono text-sm p-6 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="flex-1 resize-none border-0 rounded-none font-mono text-xs sm:text-sm p-4 sm:p-6 focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder="Digite seu markdown aqui..."
             />
           </div>
         )}
         
-        {(viewMode === 'preview' || viewMode === 'split') && (
-          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} overflow-auto p-6`}>
-            <article className="prose prose-sm dark:prose-invert max-w-none">
+        {(viewMode === 'preview' || (viewMode === 'split' && !isMobile)) && (
+          <div className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} overflow-auto p-4 sm:p-6`}>
+            <article className="prose prose-sm sm:prose dark:prose-invert max-w-none">
               {renderedMarkdown}
             </article>
           </div>

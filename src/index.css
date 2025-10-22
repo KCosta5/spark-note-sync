@@ -219,7 +219,7 @@ All colors MUST be HSL.
 }
 
 .prose img {
-  @apply rounded-lg my-4;
+  @apply rounded-lg my-4 max-w-full h-auto shadow-soft;
 }
 
 .prose input[type="checkbox"] {
