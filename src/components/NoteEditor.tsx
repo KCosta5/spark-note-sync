@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon } from 'lucide-react';
@@ -67,6 +67,46 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
     const newContent = content.substring(0, start) + table + content.substring(start);
     onChange(newContent);
   }, [content, onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key) {
+        case 'b':
+          e.preventDefault();
+          insertMarkdown('**', '**', 'negrito');
+          break;
+        case 'i':
+          e.preventDefault();
+          insertMarkdown('*', '*', 'itálico');
+          break;
+        case 'k':
+          e.preventDefault();
+          insertMarkdown('[', '](url)', 'texto do link');
+          break;
+        case '`':
+          e.preventDefault();
+          insertMarkdown('`', '`', 'código');
+          break;
+      }
+    }
+  }, [insertMarkdown]);
+
+  const renderedMarkdown = useMemo(() => (
+    <ReactMarkdown 
+      remarkPlugins={[remarkGfm]}
+      components={{
+        input: ({ node, ...props }) => (
+          <input 
+            {...props} 
+            disabled={false}
+            className="cursor-pointer"
+          />
+        ),
+      }}
+    >
+      {content || '*Nenhum conteúdo ainda...*'}
+    </ReactMarkdown>
+  ), [content]);
 
   return (
     <div className="flex flex-col h-full">
@@ -223,6 +263,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
               ref={textareaRef}
               value={content}
               onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="flex-1 resize-none border-0 rounded-none font-mono text-sm p-6 focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder="Digite seu markdown aqui..."
             />
@@ -232,20 +273,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         {(viewMode === 'preview' || viewMode === 'split') && (
           <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} overflow-auto p-6`}>
             <article className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  input: ({ node, ...props }) => (
-                    <input 
-                      {...props} 
-                      disabled={false}
-                      className="cursor-pointer"
-                    />
-                  ),
-                }}
-              >
-                {content || '*Nenhum conteúdo ainda...*'}
-              </ReactMarkdown>
+              {renderedMarkdown}
             </article>
           </div>
         )}

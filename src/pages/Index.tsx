@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import TurndownService from 'turndown';
 import { ThemeProvider } from 'next-themes';
 
 const Index = () => {
@@ -56,7 +55,7 @@ const Index = () => {
     const newNote: Note = {
       id: crypto.randomUUID(),
       title: 'Nova Anotação',
-      content: '<p>Comece a escrever...</p>',
+      content: '',
       priority: 'medium',
       folderId: selectedFolderId,
       createdAt: Date.now(),
@@ -171,24 +170,7 @@ const Index = () => {
   const handleExportMarkdown = () => {
     if (!selectedNote) return;
 
-    const turndownService = new TurndownService({
-      headingStyle: 'atx',
-      codeBlockStyle: 'fenced',
-    });
-
-    turndownService.addRule('taskList', {
-      filter: (node) => {
-        return node.nodeName === 'LI' && node.getAttribute('data-type') === 'taskItem';
-      },
-      replacement: (content, node: any) => {
-        const checkbox = node.querySelector('input[type="checkbox"]');
-        const checked = checkbox?.checked ? '[x]' : '[ ]';
-        return `- ${checked} ${content}\n`;
-      },
-    });
-
-    const markdown = turndownService.turndown(content);
-    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
