@@ -146,13 +146,16 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
-          transformImageUri={(uri) => {
-    // Allow data URLs (base64 images)
-    if (uri.startsWith('data:image/')) return uri;
-    // Otherwise, sanitize relative or absolute URLs
+          urlTransform={(url, key, node) => {
+    // Permitir imagens base64 (data:image/png;base64,...)
+    if (typeof url === 'string' && url.startsWith('data:image/')) {
+      return url;
+    }
+
+    // Garantir que outros URLs sejam válidos
     try {
-      new URL(uri);
-      return uri;
+      new URL(url);
+      return url;
     } catch {
       return '';
     }
