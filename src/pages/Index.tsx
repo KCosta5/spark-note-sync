@@ -7,12 +7,15 @@ import { SyncIndicator } from '@/components/SyncIndicator';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
+import { Trash2, Menu, FileText, Download, Flag, FileDown, FileImage } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ThemeProvider } from 'next-themes';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -170,7 +173,17 @@ const Index = () => {
   const handleExportMarkdown = () => {
     if (!selectedNote) return;
 
-    const blob = new Blob([content], { type: 'text/markdown' });
+    const metadata = `---
+title: ${title || 'Nova Anotação'}
+created: ${new Date(selectedNote.createdAt).toISOString()}
+updated: ${new Date(selectedNote.updatedAt).toISOString()}
+priority: ${selectedNote.priority}
+---
+
+`;
+    
+    const fullContent = metadata + content;
+    const blob = new Blob([fullContent], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -182,8 +195,134 @@ const Index = () => {
 
     toast({
       title: 'Exportado!',
-      description: 'Nota exportada como arquivo Markdown.',
+      description: 'Nota exportada como Markdown.',
     });
+  };
+
+  const handleExportPDF = async () => {
+    if (!selectedNote) return;
+
+    try {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '800px';
+      tempDiv.style.padding = '40px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.color = 'black';
+      document.body.appendChild(tempDiv);
+
+      const titleEl = document.createElement('h1');
+      titleEl.textContent = title || 'Nova Anotação';
+      titleEl.style.marginBottom = '20px';
+      tempDiv.appendChild(titleEl);
+
+      const contentDiv = document.createElement('div');
+      contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+      tempDiv.appendChild(contentDiv);
+
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      document.body.removeChild(tempDiv);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`${title || 'nota'}.pdf`);
+
+      toast({
+        title: 'Exportado!',
+        description: 'Nota exportada como PDF.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao exportar',
+        description: 'Não foi possível exportar como PDF.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleExportPNG = async () => {
+    if (!selectedNote) return;
+
+    try {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '800px';
+      tempDiv.style.padding = '40px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.color = 'black';
+      document.body.appendChild(tempDiv);
+
+      const titleEl = document.createElement('h1');
+      titleEl.textContent = title || 'Nova Anotação';
+      titleEl.style.marginBottom = '20px';
+      tempDiv.appendChild(titleEl);
+
+      const contentDiv = document.createElement('div');
+      contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+      tempDiv.appendChild(contentDiv);
+
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      document.body.removeChild(tempDiv);
+
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title || 'nota'}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: 'Exportado!',
+          description: 'Nota exportada como PNG.',
+        });
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao exportar',
+        description: 'Não foi possível exportar como PNG.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const sidebar = (
@@ -253,14 +392,31 @@ const Index = () => {
                       <SelectItem value="urgent">Urgente</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleExportMarkdown}
-                    title="Exportar como Markdown"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Exportar nota"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleExportMarkdown}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Exportar como Markdown
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportPDF}>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Exportar como PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportPNG}>
+                        <FileImage className="h-4 w-4 mr-2" />
+                        Exportar como PNG
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button
                     variant="ghost"
                     size="icon"
