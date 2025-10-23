@@ -22,6 +22,14 @@ export interface Note {
   deleted?: boolean;
 }
 
+export interface NoteImage {
+  id: string;
+  noteId: string;
+  blob: Blob;
+  name: string;
+  createdAt: number;
+}
+
 interface NotesDB extends DBSchema {
   notes: {
     key: string;
@@ -33,6 +41,11 @@ interface NotesDB extends DBSchema {
     value: Folder;
     indexes: { 'by-name': string };
   };
+  images: {
+    key: string;
+    value: NoteImage;
+    indexes: { 'by-noteId': string };
+  };
 }
 
 let dbInstance: IDBPDatabase<NotesDB> | null = null;
@@ -40,7 +53,7 @@ let dbInstance: IDBPDatabase<NotesDB> | null = null;
 export async function getDB() {
   if (dbInstance) return dbInstance;
 
-  dbInstance = await openDB<NotesDB>('notes-db', 2, {
+  dbInstance = await openDB<NotesDB>('notes-db', 3, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         const noteStore = db.createObjectStore('notes', { keyPath: 'id' });
@@ -49,6 +62,10 @@ export async function getDB() {
       if (oldVersion < 2) {
         const folderStore = db.createObjectStore('folders', { keyPath: 'id' });
         folderStore.createIndex('by-name', 'name');
+      }
+      if (oldVersion < 3) {
+        const imageStore = db.createObjectStore('images', { keyPath: 'id' });
+        imageStore.createIndex('by-noteId', 'noteId');
       }
     },
   });
@@ -129,4 +146,31 @@ export async function getNotesByFolder(folderId?: string): Promise<Note[]> {
     .filter(note => !note.deleted && note.folderId === folderId)
     .map(note => ({ ...note, priority: (note.priority || 'medium') as Priority }))
     .reverse();
+}
+
+// Image operations
+export async function saveImage(image: NoteImage): Promise<void> {
+  const db = await getDB();
+  await db.put('images', image);
+}
+
+export async function getImage(id: string): Promise<NoteImage | undefined> {
+  const db = await getDB();
+  return db.get('images', id);
+}
+
+export async function getImagesByNote(noteId: string): Promise<NoteImage[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('images', 'by-noteId', noteId);
+}
+
+export async function deleteImage(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('images', id);
+}
+
+export async function deleteImagesByNote(noteId: string): Promise<void> {
+  const db = await getDB();
+  const images = await getImagesByNote(noteId);
+  await Promise.all(images.map(img => db.delete('images', img.id)));
 }

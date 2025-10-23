@@ -6,15 +6,18 @@ import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Headi
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { saveImage, getImage } from '@/lib/db';
 
 interface NoteEditorProps {
   content: string;
   onChange: (content: string) => void;
+  noteId?: string;
 }
 
-export function NoteEditor({ content, onChange }: NoteEditorProps) {
+export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
   const [isMobile, setIsMobile] = useState(false);
+  const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,32 +81,74 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
     onChange(newContent);
   }, [content, onChange]);
 
-  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !noteId) return;
 
     if (!file.type.startsWith('image/')) {
       alert('Por favor, selecione um arquivo de imagem');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      const textarea = textareaRef.current;
-      if (!textarea) return;
-      
-      const start = textarea.selectionStart;
-      const imageMarkdown = `\n![${file.name}](${base64})\n`;
-      const newContent = content.substring(0, start) + imageMarkdown + content.substring(start);
-      onChange(newContent);
-    };
-    reader.readAsDataURL(file);
+    const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Save to IndexedDB
+    await saveImage({
+      id: imageId,
+      noteId,
+      blob: file,
+      name: file.name,
+      createdAt: Date.now(),
+    });
+
+    // Create object URL for immediate preview
+    const objectUrl = URL.createObjectURL(file);
+    setImageUrls(prev => new Map(prev).set(imageId, objectUrl));
+
+    // Insert markdown reference
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const imageMarkdown = `\n![${file.name}](idb://${imageId})\n`;
+    const newContent = content.substring(0, start) + imageMarkdown + content.substring(start);
+    onChange(newContent);
     
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [content, onChange]);
+  }, [content, onChange, noteId]);
+
+  // Load images from IndexedDB
+  useEffect(() => {
+    const loadImages = async () => {
+      const imageIds = content.match(/idb:\/\/([a-zA-Z0-9_]+)/g)?.map(match => match.replace('idb://', '')) || [];
+      const urls = new Map<string, string>();
+      
+      for (const imageId of imageIds) {
+        if (!imageUrls.has(imageId)) {
+          const imageData = await getImage(imageId);
+          if (imageData) {
+            const url = URL.createObjectURL(imageData.blob);
+            urls.set(imageId, url);
+          }
+        }
+      }
+      
+      if (urls.size > 0) {
+        setImageUrls(prev => new Map([...prev, ...urls]));
+      }
+    };
+
+    loadImages();
+  }, [content]);
+
+  // Cleanup object URLs
+  useEffect(() => {
+    return () => {
+      imageUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [imageUrls]);
 
   const insertHighlight = useCallback(() => {
     insertMarkdown('==', '==', 'texto destacado');
@@ -146,20 +191,27 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
       <ReactMarkdown 
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
-          urlTransform={(url, key, node) => {
-    // Permitir imagens base64 (data:image/png;base64,...)
-    if (typeof url === 'string' && url.startsWith('data:image/')) {
-      return url;
-    }
-
-    // Garantir que outros URLs sejam válidos
-    try {
-      new URL(url);
-      return url;
-    } catch {
-      return '';
-    }
-  }}
+        urlTransform={(url) => {
+          if (typeof url === 'string') {
+            // Handle IndexedDB images
+            if (url.startsWith('idb://')) {
+              const imageId = url.replace('idb://', '');
+              return imageUrls.get(imageId) || '';
+            }
+            // Allow data URLs
+            if (url.startsWith('data:image/')) {
+              return url;
+            }
+            // Validate other URLs
+            try {
+              new URL(url);
+              return url;
+            } catch {
+              return '';
+            }
+          }
+          return '';
+        }}
         components={{
           input: ({ node, ...props }) => (
             <input 
@@ -184,7 +236,7 @@ export function NoteEditor({ content, onChange }: NoteEditorProps) {
         {processedContent}
       </ReactMarkdown>
     );
-  }, [content]);
+  }, [content, imageUrls]);
 
   return (
     <div className="flex flex-col h-full">

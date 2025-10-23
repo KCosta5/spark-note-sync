@@ -280,6 +280,7 @@ const Index = () => {
             <NoteEditor
               content={content}
               onChange={setContent}
+              noteId={selectedNote.id}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
