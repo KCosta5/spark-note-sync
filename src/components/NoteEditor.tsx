@@ -12,17 +12,14 @@ interface NoteEditorProps {
   content: string;
   onChange: (content: string) => void;
   noteId?: string;
-  previewRef?: React.RefObject<HTMLDivElement>;
 }
 
-export function NoteEditor({ content, onChange, noteId, previewRef: externalPreviewRef }: NoteEditorProps) {
+export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
   const [isMobile, setIsMobile] = useState(false);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const internalPreviewRef = useRef<HTMLDivElement>(null);
-  const previewRef = externalPreviewRef || internalPreviewRef;
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -427,7 +424,7 @@ export function NoteEditor({ content, onChange, noteId, previewRef: externalPrev
         )}
         
         {(viewMode === 'preview' || (viewMode === 'split' && !isMobile)) && (
-          <div ref={previewRef} className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} overflow-auto p-4 sm:p-6`}>
+          <div className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} overflow-auto p-4 sm:p-6`}>
             <article className="prose prose-sm sm:prose dark:prose-invert max-w-none">
               {renderedMarkdown}
             </article>
