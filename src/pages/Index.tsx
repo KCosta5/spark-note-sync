@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, saveNote, saveFolder, deleteNote, deleteFolder, Priority } from '@/lib/db';
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
@@ -7,12 +7,15 @@ import { SyncIndicator } from '@/components/SyncIndicator';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
+import { Trash2, Menu, FileText, Flag, Download, FileDown, FileImage } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ThemeProvider } from 'next-themes';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -24,6 +27,7 @@ const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const loadNotes = useCallback(async () => {
     const loadedNotes = await getNotesByFolder(selectedFolderId);
@@ -170,11 +174,22 @@ const Index = () => {
   const handleExportMarkdown = () => {
     if (!selectedNote) return;
 
-    const blob = new Blob([content], { type: 'text/markdown' });
+    const fileName = (title || 'nota').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const timestamp = new Date().toISOString().split('T')[0];
+    const metadata = `---
+title: ${title || 'Nota sem título'}
+date: ${new Date().toLocaleDateString('pt-BR')}
+exported: ${new Date().toISOString()}
+---
+
+`;
+    
+    const fullContent = metadata + content;
+    const blob = new Blob([fullContent], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${title || 'nota'}.md`;
+    a.download = `${fileName}_${timestamp}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -182,9 +197,111 @@ const Index = () => {
 
     toast({
       title: 'Exportado!',
-      description: 'Nota exportada como arquivo Markdown.',
+      description: 'Nota exportada como Markdown com metadados.',
     });
   };
+
+  const handleExportPDF = async () => {
+    if (!selectedNote || !previewRef.current) return;
+
+    try {
+      toast({
+        title: 'Gerando PDF...',
+        description: 'Aguarde enquanto convertemos sua nota.',
+      });
+
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(
+        imgData,
+        'PNG',
+        imgX,
+        imgY,
+        imgWidth * ratio,
+        imgHeight * ratio
+      );
+
+      const fileName = (title || 'nota').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const timestamp = new Date().toISOString().split('T')[0];
+      pdf.save(`${fileName}_${timestamp}.pdf`);
+
+      toast({
+        title: 'PDF gerado!',
+        description: 'Sua nota foi exportada como PDF.',
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar o PDF. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleExportPNG = async () => {
+    if (!selectedNote || !previewRef.current) return;
+
+    try {
+      toast({
+        title: 'Gerando imagem...',
+        description: 'Aguarde enquanto convertemos sua nota.',
+      });
+
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const fileName = (title || 'nota').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const timestamp = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.download = `${fileName}_${timestamp}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: 'Imagem gerada!',
+          description: 'Sua nota foi exportada como PNG.',
+        });
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PNG:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar a imagem. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
 
   const sidebar = (
     <NotesList
@@ -253,14 +370,31 @@ const Index = () => {
                       <SelectItem value="urgent">Urgente</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleExportMarkdown}
-                    title="Exportar como Markdown"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Exportar nota"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleExportMarkdown}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Exportar como Markdown
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportPDF}>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Exportar como PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportPNG}>
+                        <FileImage className="h-4 w-4 mr-2" />
+                        Exportar como PNG
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -281,6 +415,7 @@ const Index = () => {
               content={content}
               onChange={setContent}
               noteId={selectedNote.id}
+              previewRef={previewRef}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
