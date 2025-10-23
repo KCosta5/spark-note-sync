@@ -24,6 +24,10 @@ export function SettingsDialog() {
     { value: 'pink', label: 'Rosa', color: 'bg-pink-500' },
   ];
 
+  useEffect(() => {
+  localStorage.setItem('themeColor', themeColor);
+}, [themeColor]);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
