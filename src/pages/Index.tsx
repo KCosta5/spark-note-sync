@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ThemeProvider } from 'next-themes';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -201,8 +200,7 @@ const Index = () => {
   );
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+    <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
         <div className="flex h-screen overflow-hidden bg-background">
           {isMobile ? (
             <SheetContent side="left" className="p-0 w-80">
@@ -301,8 +299,7 @@ const Index = () => {
         </main>
       </div>
     </div>
-      </Sheet>
-    </ThemeProvider>
+    </Sheet>
   );
 };
 

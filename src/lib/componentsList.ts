@@ -50,7 +50,6 @@ const COMPONENTS = [
   "table",
   "tabs",
   "textarea",
-  "ThemeCssEditor",
   "toast",
   "toaster",
   "toggle",
