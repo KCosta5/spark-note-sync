@@ -32,11 +32,4 @@ Uma grande parte dos componentes reutilizáveis fica em `src/components/ui` (ex:
 - Use classes Tailwind em vez de CSS inline quando possível.
 - Mantenha a lógica visual em componentes UI e a lógica de negócio em hooks.
 
-## Arquivos úteis
-
-- `THEME_HELP.md` — ajuda rápida do editor de tema.
-- `DOCS.md` — esta documentação.
-
----
-
 Para mais perguntas, adicione um issue no repositório ou entre em contato com o mantenedor.

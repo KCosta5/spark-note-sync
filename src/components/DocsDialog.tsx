@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,8 +11,39 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BookOpen } from 'lucide-react';
 import COMPONENTS from '@/lib/componentsList';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 export function DocsDialog() {
+  const [docText, setDocText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/DOCS.md')
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to fetch DOCS.md: ${r.status}`);
+        return r.text();
+      })
+      .then((txt) => {
+        if (!mounted) return;
+        setDocText(txt);
+      })
+      .catch((e: any) => {
+        if (!mounted) return;
+        setErr(String(e.message || e));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -29,43 +60,22 @@ export function DocsDialog() {
         </DialogHeader>
 
         <div className="pt-4">
-          <ScrollArea className="h-[60vh]">
-            <section className="prose prose-sm dark:prose-invert">
-              <h3>Visão Geral</h3>
-              <p>
-                Esta aplicação permite gerenciar notas e sincronizá-las. As opções de tema agora são
-                aplicadas via CSS customizado. Use a aba de <strong>Editor de Tema (CSS)</strong> nas
-                configurações para aplicar estilos globais.
-              </p>
+          <ScrollArea className="h-[60vh] p-4">
+            <div className="prose prose-sm dark:prose-invert">
+              {loading && <div>Carregando documentação…</div>}
+              {err && <div className="text-destructive">Erro: {err}</div>}
+              {!loading && !err && docText && (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{docText}</ReactMarkdown>
+              )}
 
-              <h3>Como aplicar estilos</h3>
-              <ol>
-                <li>Abra Configurações → Editor de Tema (CSS).</li>
-                <li>Cole seu CSS customizado (use a classe :root para declarar variáveis).</li>
-                <li>Clique em Aplicar para injetar o CSS imediatamente.</li>
-                <li>Use Exportar/Importar para compartilhar presets de CSS.</li>
-              </ol>
-
-              <h3>Lista de componentes usados</h3>
-              <p>Os principais componentes e primitives reutilizáveis incluídos no projeto:</p>
+              {/* Fallback: list components if doc doesn't include them */}
+              <h4>Componentes detectados</h4>
               <ul>
                 {COMPONENTS.map((c) => (
                   <li key={c} className="capitalize">{c}</li>
                 ))}
               </ul>
-
-              <h3>Contribuindo</h3>
-              <p>
-                O projeto usa Tailwind CSS para estilos utilitários e Radix UI primitives para acessibilidade.
-                Ao adicionar componentes, prefira componentes atômicos em <code>src/components/ui</code> e
-                mantenha a API simples (props limitadas, variantes por classes).
-              </p>
-
-              <h3>Mais</h3>
-              <p>
-                Para detalhes de temas, veja <code>THEME_HELP.md</code> na raiz do projeto.
-              </p>
-            </section>
+            </div>
           </ScrollArea>
         </div>
       </DialogContent>
