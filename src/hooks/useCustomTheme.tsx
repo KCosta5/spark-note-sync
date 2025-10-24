@@ -2,21 +2,16 @@ import { useState, useEffect } from 'react';
 
 export type ThemeColor = 'blue' | 'green' | 'purple' | 'orange' | 'pink';
 
-export type CustomVars = Record<string, string>;
-export type Preset = { name: string; type: 'vars' | 'css'; data: any };
+export type Preset = { name: string; type: 'css'; data: any };
 
 export type UseCustomThemeReturn = {
   themeColor: ThemeColor;
   setThemeColor: (c: ThemeColor) => void;
-  customVars: CustomVars;
-  setCustomVar: (key: string, value: string) => void;
-  setCustomVars: (vars: CustomVars) => void;
-  resetCustomVars: () => void;
   customCss: string;
   setCustomCss: (css: string) => void;
   resetCustomCss: () => void;
   presets: Preset[];
-  savePreset: (name: string, type: 'vars' | 'css', data: any) => void;
+  savePreset: (name: string, type: 'css', data: any) => void;
   loadPreset: (name: string) => void;
   deletePreset: (name: string) => void;
 };
@@ -140,17 +135,12 @@ export function useCustomTheme(): UseCustomThemeReturn {
     return (saved as ThemeColor) || 'blue';
   });
 
-  // Custom CSS variables editable by the user (saved in localStorage)
-  type CustomVars = Record<string, string>;
-  const CUSTOM_VARS_KEY = 'theme-custom-vars';
-  const [customVars, setCustomVars] = useState<CustomVars>(() => {
+  // Remove all customVars from localStorage and memory on load (migration)
+  useEffect(() => {
     try {
-      const raw = localStorage.getItem(CUSTOM_VARS_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch (e) {
-      return {};
-    }
-  });
+      localStorage.removeItem('theme-custom-vars');
+    } catch (e) {}
+  }, []);
   const CUSTOM_CSS_KEY = 'theme-custom-css';
   const [customCss, setCustomCssState] = useState<string>(() => {
     try {
@@ -161,11 +151,11 @@ export function useCustomTheme(): UseCustomThemeReturn {
   });
 
   const PRESETS_KEY = 'theme-presets';
-  type Preset = { name: string; type: 'vars' | 'css'; data: any };
+  type Preset = { name: string; type: 'css'; data: any };
   const [presets, setPresets] = useState<Preset[]>(() => {
     try {
       const raw = localStorage.getItem(PRESETS_KEY);
-      return raw ? JSON.parse(raw) : [];
+      return raw ? JSON.parse(raw).filter((p: any) => p.type === 'css') : [];
     } catch (e) {
       return [];
     }
@@ -181,28 +171,20 @@ export function useCustomTheme(): UseCustomThemeReturn {
       Object.entries(colors).forEach(([key, value]) => {
         root.style.setProperty(`--${key}`, value);
       });
-
-      // Apply any custom variables (overrides)
-      Object.entries(customVars).forEach(([key, value]) => {
-        // ensure user can omit the leading "--"
-        const varName = key.startsWith('--') ? key : `--${key}`;
-        root.style.setProperty(varName, value);
-      });
     };
 
     updateColors();
-    // persist theme color and vars
+    // persist theme color only
     try {
       localStorage.setItem('theme-color', themeColor);
-      localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(customVars || {}));
     } catch (e) {}
 
     // Apply any custom CSS (full stylesheet) if present
     applyCustomCssToDocument(customCss);
 
-    // persist presets
+    // persist presets (only css type)
     try {
-      localStorage.setItem(PRESETS_KEY, JSON.stringify(presets || []));
+      localStorage.setItem(PRESETS_KEY, JSON.stringify(presets.filter((p) => p.type === 'css') || []));
     } catch (e) {}
 
     // Watch for theme mode changes
@@ -213,48 +195,9 @@ export function useCustomTheme(): UseCustomThemeReturn {
     });
 
     return () => observer.disconnect();
-  }, [themeColor, customVars, customCss, presets]);
+  }, [themeColor, customCss, presets]);
 
-  // helper to set or update a single custom var (in-memory + persist)
-  const setCustomVar = (key: string, value: string) => {
-    setCustomVars((prev) => {
-      const next = { ...prev, [key.replace(/^--/, '')]: value };
-      try {
-        localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(next));
-      } catch (e) {}
-      // also reflect immediately in document
-      const varName = key.startsWith('--') ? key : `--${key}`;
-      document.documentElement.style.setProperty(varName, value);
-      return next;
-    });
-  };
 
-  const setCustomVarsBulk = (vars: CustomVars) => {
-    const normalized: CustomVars = {};
-    Object.entries(vars).forEach(([k, v]) => (normalized[k.replace(/^--/, '')] = v));
-    setCustomVars(normalized);
-    try {
-      localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(normalized));
-    } catch (e) {}
-    Object.entries(normalized).forEach(([k, v]) => {
-      const varName = k.startsWith('--') ? k : `--${k}`;
-      document.documentElement.style.setProperty(varName, v);
-    });
-  };
-
-  const resetCustomVars = () => {
-    setCustomVars({});
-    try {
-      localStorage.removeItem(CUSTOM_VARS_KEY);
-    } catch (e) {}
-    // remove any custom properties from :root by re-applying theme colors
-    const root = document.documentElement;
-    const isDark = root.classList.contains('dark');
-    const colors = themes[themeColor][isDark ? 'dark' : 'light'];
-    Object.keys(colors).forEach((k) => root.style.removeProperty(`--${k}`));
-    // re-run update by setting themeColor to itself (effect will write colors back)
-    setThemeColor((c) => c);
-  };
 
   // Apply a full CSS string into a <style id="user-theme-css"> element
   const applyCustomCssToDocument = (css: string) => {
@@ -288,7 +231,8 @@ export function useCustomTheme(): UseCustomThemeReturn {
   };
 
   // Preset management (save/load/delete)
-  const savePreset = (name: string, type: 'vars' | 'css', data: any) => {
+
+  const savePreset = (name: string, type: 'css', data: any) => {
     const next = [...presets.filter((p) => p.name !== name), { name, type, data }];
     setPresets(next);
     try {
@@ -299,9 +243,7 @@ export function useCustomTheme(): UseCustomThemeReturn {
   const loadPreset = (name: string) => {
     const p = presets.find((x) => x.name === name);
     if (!p) return;
-    if (p.type === 'vars') {
-      setCustomVarsBulk(p.data || {});
-    } else if (p.type === 'css') {
+    if (p.type === 'css') {
       setCustomCss(p.data || '');
     }
   };
@@ -318,10 +260,6 @@ export function useCustomTheme(): UseCustomThemeReturn {
   return {
     themeColor,
     setThemeColor,
-    customVars,
-    setCustomVar,
-    setCustomVars: setCustomVarsBulk,
-    resetCustomVars,
     customCss,
     setCustomCss,
     resetCustomCss,

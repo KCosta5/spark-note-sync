@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node \"./node_modules/vite/bin/vite.js\"",
     "build": "vite build",
+  "generate:components": "node ./scripts/generate-components.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"

@@ -12,13 +12,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { useTheme } from 'next-themes';
 import { useCustomTheme, type ThemeColor } from '@/hooks/useCustomTheme';
-import ThemeEditor from '@/components/ThemeEditor';
 import ThemeCssEditor from '@/components/ThemeCssEditor';
+import DocsDialog from '@/components/DocsDialog';
 
 export function SettingsDialog() {
   const { theme, setTheme } = useTheme();
   const { themeColor, setThemeColor } = useCustomTheme();
-  const [submenu, setSubmenu] = useState<'vars' | 'css'>('vars');
+  // Only CSS editor is needed now
 
   const themeColors: { value: ThemeColor; label: string; color: string }[] = [
     { value: 'blue', label: 'Azul', color: 'bg-blue-500' },
@@ -35,12 +35,19 @@ export function SettingsDialog() {
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+  <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Configurações</DialogTitle>
-          <DialogDescription>
-            Personalize sua experiência no Caderno Escolar.
-          </DialogDescription>
+          <div className="flex items-start justify-between w-full">
+            <div>
+              <DialogTitle>Configurações</DialogTitle>
+              <DialogDescription>
+                Personalize sua experiência no Caderno Escolar.
+              </DialogDescription>
+            </div>
+            <div className="ml-4">
+              <DocsDialog />
+            </div>
+          </div>
         </DialogHeader>
   <div className="space-y-6 py-4 max-h-[65vh] overflow-auto pr-2">
           <div className="space-y-3">
@@ -99,30 +106,10 @@ export function SettingsDialog() {
           </div>
 
           <div className="space-y-3 pt-4 border-t border-border">
-            <Label>Editor Avançado de Tema</Label>
-            <p className="text-sm text-muted-foreground">Edite variáveis do tema (HSL, hex) ou personalize o CSS completo do tema.</p>
-
-            <div className="mt-2">
-              <div className="inline-flex rounded-md shadow-sm" role="tablist" aria-label="Editor Avançado de Tema">
-                <Button size="sm" variant={submenu === 'vars' ? 'default' : 'outline'} className="rounded-r-none" onClick={() => setSubmenu('vars')}>
-                  Variáveis
-                </Button>
-                <Button size="sm" variant={submenu === 'css' ? 'default' : 'outline'} className="rounded-l-none" onClick={() => setSubmenu('css')}>
-                  CSS
-                </Button>
-              </div>
-
-              <div className="pt-4">
-                {submenu === 'vars' ? (
-                  <div className="space-y-4">
-                    <ThemeEditor />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <ThemeCssEditor />
-                  </div>
-                )}
-              </div>
+            <Label>Editor de Tema (CSS)</Label>
+            <p className="text-sm text-muted-foreground">Personalize o CSS completo do tema.</p>
+            <div className="mt-2 space-y-4">
+              <ThemeCssEditor />
             </div>
           </div>
         </div>
