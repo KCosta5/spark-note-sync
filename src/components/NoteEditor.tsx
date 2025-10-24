@@ -154,7 +154,94 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
     insertMarkdown('==', '==', 'texto destacado');
   }, [insertMarkdown]);
 
+  
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Auto-continue lists on Enter
+    if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !(e.ctrlKey || e.metaKey)) {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      const lineStart = content.lastIndexOf('\n', start - 1) + 1;
+      const lineEndIndex = content.indexOf('\n', start);
+      const lineEnd = lineEndIndex === -1 ? content.length : lineEndIndex;
+      const line = content.substring(lineStart, lineEnd);
+
+      // checkbox: capture leading spaces and the whole checkbox marker
+      const checkboxMatch = line.match(/^(\s*)(- \[[ xX]?\]\s*)/);
+      // ordered list: leading spaces + number + dot + whitespace
+      const orderedMatch = line.match(/^(\s*)(\d+)\.\s+/);
+      // unordered list: leading spaces + symbol (- * +) + whitespace
+      const unorderedMatch = line.match(/^(\s*)([-*+])\s+/);
+
+      if (checkboxMatch || orderedMatch || unorderedMatch) {
+        e.preventDefault();
+
+        // helper to remove current empty list line
+        const removeCurrentLine = () => {
+          const before = content.substring(0, lineStart);
+          const after = lineEnd === content.length ? '' : content.substring(lineEnd + 1);
+          const newContent = before + (after ? '\n' + after : after);
+          onChange(newContent);
+          setTimeout(() => {
+            const pos = lineStart;
+            textarea.setSelectionRange(pos, pos);
+          }, 0);
+        };
+
+        if (checkboxMatch) {
+          const afterMarker = line.slice(checkboxMatch[0].length);
+          if (afterMarker.trim() === '') {
+            // If the list item is empty, remove the marker (exit list)
+            removeCurrentLine();
+          } else {
+            const insert = '\n' + checkboxMatch[1] + '- [ ] ';
+            const newContent = content.substring(0, start) + insert + content.substring(end);
+            onChange(newContent);
+            setTimeout(() => {
+              const pos = start + insert.length;
+              textarea.setSelectionRange(pos, pos);
+            }, 0);
+          }
+        } else if (orderedMatch) {
+          const leading = orderedMatch[1];
+          const num = parseInt(orderedMatch[2], 10);
+          const afterMarker = line.slice(orderedMatch[0].length);
+          if (afterMarker.trim() === '') {
+            removeCurrentLine();
+          } else {
+            const insert = '\n' + leading + (num + 1) + '. ';
+            const newContent = content.substring(0, start) + insert + content.substring(end);
+            onChange(newContent);
+            setTimeout(() => {
+              const pos = start + insert.length;
+              textarea.setSelectionRange(pos, pos);
+            }, 0);
+          }
+        } else if (unorderedMatch) {
+          const leading = unorderedMatch[1];
+          const symbol = unorderedMatch[2];
+          const afterMarker = line.slice(unorderedMatch[0].length);
+          if (afterMarker.trim() === '') {
+            removeCurrentLine();
+          } else {
+            const insert = '\n' + leading + symbol + ' ';
+            const newContent = content.substring(0, start) + insert + content.substring(end);
+            onChange(newContent);
+            setTimeout(() => {
+              const pos = start + insert.length;
+              textarea.setSelectionRange(pos, pos);
+            }, 0);
+          }
+        }
+
+        return;
+      }
+    }
+
+    // existing shortcuts (Ctrl/Cmd + ...)
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
         case 'b':
@@ -175,7 +262,7 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
           break;
       }
     }
-  }, [insertMarkdown]);
+  }, [content, insertMarkdown, onChange]);
 
   // Auto-switch to single pane on mobile
   useEffect(() => {
@@ -425,9 +512,9 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         
         {(viewMode === 'preview' || (viewMode === 'split' && !isMobile)) && (
           <div className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} overflow-auto p-4 sm:p-6`}>
-            <article className="prose prose-sm sm:prose dark:prose-invert max-w-none">
-              {renderedMarkdown}
-            </article>
+            <article className="prose prose-sm sm:prose dark:prose-invert max-w-none prose-ul:list-disc prose-ol:list-decimal prose-li:my-1">
+  {renderedMarkdown}
+</article>
           </div>
         )}
       </div>
