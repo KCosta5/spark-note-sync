@@ -2,6 +2,25 @@ import { useState, useEffect } from 'react';
 
 export type ThemeColor = 'blue' | 'green' | 'purple' | 'orange' | 'pink';
 
+export type CustomVars = Record<string, string>;
+export type Preset = { name: string; type: 'vars' | 'css'; data: any };
+
+export type UseCustomThemeReturn = {
+  themeColor: ThemeColor;
+  setThemeColor: (c: ThemeColor) => void;
+  customVars: CustomVars;
+  setCustomVar: (key: string, value: string) => void;
+  setCustomVars: (vars: CustomVars) => void;
+  resetCustomVars: () => void;
+  customCss: string;
+  setCustomCss: (css: string) => void;
+  resetCustomCss: () => void;
+  presets: Preset[];
+  savePreset: (name: string, type: 'vars' | 'css', data: any) => void;
+  loadPreset: (name: string) => void;
+  deletePreset: (name: string) => void;
+};
+
 const themes = {
   blue: {
     light: {
@@ -115,10 +134,41 @@ const themes = {
   },
 };
 
-export function useCustomTheme() {
+export function useCustomTheme(): UseCustomThemeReturn {
   const [themeColor, setThemeColor] = useState<ThemeColor>(() => {
     const saved = localStorage.getItem('theme-color');
     return (saved as ThemeColor) || 'blue';
+  });
+
+  // Custom CSS variables editable by the user (saved in localStorage)
+  type CustomVars = Record<string, string>;
+  const CUSTOM_VARS_KEY = 'theme-custom-vars';
+  const [customVars, setCustomVars] = useState<CustomVars>(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_VARS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const CUSTOM_CSS_KEY = 'theme-custom-css';
+  const [customCss, setCustomCssState] = useState<string>(() => {
+    try {
+      return localStorage.getItem(CUSTOM_CSS_KEY) || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const PRESETS_KEY = 'theme-presets';
+  type Preset = { name: string; type: 'vars' | 'css'; data: any };
+  const [presets, setPresets] = useState<Preset[]>(() => {
+    try {
+      const raw = localStorage.getItem(PRESETS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
   });
 
   useEffect(() => {
@@ -131,10 +181,29 @@ export function useCustomTheme() {
       Object.entries(colors).forEach(([key, value]) => {
         root.style.setProperty(`--${key}`, value);
       });
+
+      // Apply any custom variables (overrides)
+      Object.entries(customVars).forEach(([key, value]) => {
+        // ensure user can omit the leading "--"
+        const varName = key.startsWith('--') ? key : `--${key}`;
+        root.style.setProperty(varName, value);
+      });
     };
 
     updateColors();
-    localStorage.setItem('theme-color', themeColor);
+    // persist theme color and vars
+    try {
+      localStorage.setItem('theme-color', themeColor);
+      localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(customVars || {}));
+    } catch (e) {}
+
+    // Apply any custom CSS (full stylesheet) if present
+    applyCustomCssToDocument(customCss);
+
+    // persist presets
+    try {
+      localStorage.setItem(PRESETS_KEY, JSON.stringify(presets || []));
+    } catch (e) {}
 
     // Watch for theme mode changes
     const observer = new MutationObserver(updateColors);
@@ -144,7 +213,121 @@ export function useCustomTheme() {
     });
 
     return () => observer.disconnect();
-  }, [themeColor]);
+  }, [themeColor, customVars, customCss, presets]);
 
-  return { themeColor, setThemeColor };
+  // helper to set or update a single custom var (in-memory + persist)
+  const setCustomVar = (key: string, value: string) => {
+    setCustomVars((prev) => {
+      const next = { ...prev, [key.replace(/^--/, '')]: value };
+      try {
+        localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(next));
+      } catch (e) {}
+      // also reflect immediately in document
+      const varName = key.startsWith('--') ? key : `--${key}`;
+      document.documentElement.style.setProperty(varName, value);
+      return next;
+    });
+  };
+
+  const setCustomVarsBulk = (vars: CustomVars) => {
+    const normalized: CustomVars = {};
+    Object.entries(vars).forEach(([k, v]) => (normalized[k.replace(/^--/, '')] = v));
+    setCustomVars(normalized);
+    try {
+      localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(normalized));
+    } catch (e) {}
+    Object.entries(normalized).forEach(([k, v]) => {
+      const varName = k.startsWith('--') ? k : `--${k}`;
+      document.documentElement.style.setProperty(varName, v);
+    });
+  };
+
+  const resetCustomVars = () => {
+    setCustomVars({});
+    try {
+      localStorage.removeItem(CUSTOM_VARS_KEY);
+    } catch (e) {}
+    // remove any custom properties from :root by re-applying theme colors
+    const root = document.documentElement;
+    const isDark = root.classList.contains('dark');
+    const colors = themes[themeColor][isDark ? 'dark' : 'light'];
+    Object.keys(colors).forEach((k) => root.style.removeProperty(`--${k}`));
+    // re-run update by setting themeColor to itself (effect will write colors back)
+    setThemeColor((c) => c);
+  };
+
+  // Apply a full CSS string into a <style id="user-theme-css"> element
+  const applyCustomCssToDocument = (css: string) => {
+    try {
+      let el = document.getElementById('user-theme-css') as HTMLStyleElement | null;
+      if (!el) {
+        el = document.createElement('style');
+        el.id = 'user-theme-css';
+        document.head.appendChild(el);
+      }
+      el.textContent = css || '';
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const setCustomCss = (css: string) => {
+    setCustomCssState(css);
+    try {
+      localStorage.setItem(CUSTOM_CSS_KEY, css || '');
+    } catch (e) {}
+    applyCustomCssToDocument(css);
+  };
+
+  const resetCustomCss = () => {
+    setCustomCssState('');
+    try {
+      localStorage.removeItem(CUSTOM_CSS_KEY);
+    } catch (e) {}
+    applyCustomCssToDocument('');
+  };
+
+  // Preset management (save/load/delete)
+  const savePreset = (name: string, type: 'vars' | 'css', data: any) => {
+    const next = [...presets.filter((p) => p.name !== name), { name, type, data }];
+    setPresets(next);
+    try {
+      localStorage.setItem(PRESETS_KEY, JSON.stringify(next));
+    } catch (e) {}
+  };
+
+  const loadPreset = (name: string) => {
+    const p = presets.find((x) => x.name === name);
+    if (!p) return;
+    if (p.type === 'vars') {
+      setCustomVarsBulk(p.data || {});
+    } else if (p.type === 'css') {
+      setCustomCss(p.data || '');
+    }
+  };
+
+  const deletePreset = (name: string) => {
+    const next = presets.filter((p) => p.name !== name);
+    setPresets(next);
+    try {
+      localStorage.setItem(PRESETS_KEY, JSON.stringify(next));
+    } catch (e) {}
+  };
+
+
+  return {
+    themeColor,
+    setThemeColor,
+    customVars,
+    setCustomVar,
+    setCustomVars: setCustomVarsBulk,
+    resetCustomVars,
+    customCss,
+    setCustomCss,
+    resetCustomCss,
+    presets,
+    savePreset,
+    loadPreset,
+    deletePreset,
+  };
 }
