@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect, useLayoutEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -21,6 +21,11 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- Floating toolbar state & refs ---
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [toolbarVisible, setToolbarVisible] = useState(false);
+  const [toolbarPos, setToolbarPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -28,6 +33,132 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Helper: measure caret/selection coordinates inside a textarea
+  const getSelectionCoordinates = useCallback(() => {
+    const textarea = textareaRef.current;
+    const container = containerRef.current;
+    if (!textarea || !container) return null;
+
+    try {
+      const { selectionStart, selectionEnd } = textarea;
+      if (selectionStart === null || selectionEnd === null) return null;
+      const value = textarea.value || '';
+      const start = Math.min(selectionStart, selectionEnd);
+      const end = Math.max(selectionStart, selectionEnd);
+      // Build mirror div
+      const style = window.getComputedStyle(textarea);
+      const div = document.createElement('div');
+      document.body.appendChild(div);
+
+      const properties = [
+        'boxSizing','width','height','fontSize','fontFamily','fontWeight','fontStyle',
+        'letterSpacing','textTransform','wordSpacing','textIndent','whiteSpace','lineHeight',
+        'paddingTop','paddingRight','paddingBottom','paddingLeft','borderTopWidth',
+        'borderRightWidth','borderBottomWidth','borderLeftWidth'
+      ];
+
+      div.style.position = 'absolute';
+      div.style.visibility = 'hidden';
+      div.style.top = '0px';
+      div.style.left = '-9999px';
+      div.style.overflow = 'auto';
+      properties.forEach(prop => {
+        // @ts-ignore
+        div.style[prop] = style.getPropertyValue(prop) || (style as any)[prop] || '';
+      });
+
+      // Make sure wrapping matches textarea
+      div.style.whiteSpace = 'pre-wrap';
+      div.style.wordWrap = 'break-word';
+
+      // Split content and insert span that wraps the selection
+      const before = document.createTextNode(value.substring(0, start));
+      const selectedText = document.createTextNode(value.substring(start, end) || '\u200b'); // zero-width if no selection
+      const after = document.createTextNode(value.substring(end));
+
+      const span = document.createElement('span');
+      span.appendChild(selectedText);
+
+      div.appendChild(before);
+      div.appendChild(span);
+      div.appendChild(after);
+
+      // Mirror scroll
+      div.scrollTop = textarea.scrollTop;
+
+      // Compute coordinates
+      const textareaRect = textarea.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const spanRect = span.getBoundingClientRect();
+
+      // left relative to container
+      const left = spanRect.left - containerRect.left;
+      // top (place above the selection)
+      const toolbarHeight = 36; // approx height of toolbar
+      const top = spanRect.top - containerRect.top - toolbarHeight - 8;
+
+      document.body.removeChild(div);
+
+      return { left, top };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Update toolbar visibility/position when selection changes
+  useEffect(() => {
+    const update = () => {
+      const textarea = textareaRef.current;
+      const container = containerRef.current;
+      if (!textarea || !container) {
+        setToolbarVisible(false);
+        return;
+      }
+
+      const selStart = textarea.selectionStart;
+      const selEnd = textarea.selectionEnd;
+      const hasSelection = typeof selStart === 'number' && typeof selEnd === 'number' && selEnd > selStart;
+
+      // Only show when editing (not preview-only) and not mobile
+      const editingPaneVisible = viewMode === 'edit' || (viewMode === 'split' && !isMobile);
+      if (!hasSelection || !editingPaneVisible) {
+        setToolbarVisible(false);
+        return;
+      }
+
+      const coords = getSelectionCoordinates();
+      if (coords) {
+        setToolbarPos(coords);
+        setToolbarVisible(true);
+      } else {
+        setToolbarVisible(false);
+      }
+    };
+
+    // listen for selection changes and interactions
+    document.addEventListener('selectionchange', update);
+    window.addEventListener('resize', update);
+    document.addEventListener('mouseup', update);
+    document.addEventListener('keyup', update);
+
+    return () => {
+      document.removeEventListener('selectionchange', update);
+      window.removeEventListener('resize', update);
+      document.removeEventListener('mouseup', update);
+      document.removeEventListener('keyup', update);
+    };
+  }, [getSelectionCoordinates, isMobile, viewMode]);
+
+  // Hide toolbar on blur or when switching modes
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const onBlur = () => setToolbarVisible(false);
+    ta.addEventListener('blur', onBlur);
+    return () => ta.removeEventListener('blur', onBlur);
+  }, []);
+
+  // --- existing functions unchanged ---
   const insertMarkdown = useCallback((before: string, after: string = '', placeholder: string = '') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -154,7 +285,6 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
     insertMarkdown('==', '==', 'texto destacado');
   }, [insertMarkdown]);
 
-  
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Auto-continue lists on Enter
     if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !(e.ctrlKey || e.metaKey)) {
@@ -326,7 +456,7 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   }, [content, imageUrls]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div ref={containerRef} className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center gap-1 px-2 sm:px-4 py-2 border-b border-border bg-muted/30 overflow-x-auto">
         <div className="flex gap-1 mr-2 shrink-0">
           <Button
@@ -496,6 +626,35 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         </Button>
       </div>
       
+      {/* Floating formatting toolbar */}
+      {toolbarVisible && (
+        <div
+          className="absolute z-50 flex items-center gap-1 bg-popover/90 backdrop-blur rounded-md p-1 shadow-md"
+          style={{
+            left: Math.max(8, toolbarPos.left),
+            top: Math.max(8, toolbarPos.top),
+            transform: 'translateY(0)',
+            pointerEvents: 'auto',
+          }}
+        >
+          <button title="Negrito" onMouseDown={(e) => { e.preventDefault(); insertMarkdown('**', '**'); }} className="p-1 rounded hover:bg-muted">
+            <Bold className="h-4 w-4" />
+          </button>
+          <button title="Itálico" onMouseDown={(e) => { e.preventDefault(); insertMarkdown('*', '*'); }} className="p-1 rounded hover:bg-muted">
+            <Italic className="h-4 w-4" />
+          </button>
+          <button title="Código" onMouseDown={(e) => { e.preventDefault(); insertMarkdown('`', '`'); }} className="p-1 rounded hover:bg-muted">
+            <Code className="h-4 w-4" />
+          </button>
+          <button title="Link" onMouseDown={(e) => { e.preventDefault(); insertMarkdown('[', '](url)'); }} className="p-1 rounded hover:bg-muted">
+            <LinkIcon className="h-4 w-4" />
+          </button>
+          <button title="Destacar" onMouseDown={(e) => { e.preventDefault(); insertMarkdown('==', '=='); }} className="p-1 rounded hover:bg-muted">
+            <Highlighter className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className={`flex-1 flex overflow-hidden ${viewMode === 'split' && !isMobile ? 'divide-x divide-border' : 'flex-col'}`}>
         {(viewMode === 'edit' || (viewMode === 'split' && !isMobile)) && (
           <div className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} flex flex-col`}>
