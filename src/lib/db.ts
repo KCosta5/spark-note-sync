@@ -10,12 +10,22 @@ export interface Folder {
   deleted?: boolean;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: number;
+  synced: boolean;
+  deleted?: boolean;
+}
+
 export interface Note {
   id: string;
   title: string;
   content: string;
   priority: Priority;
   folderId?: string;
+  tagIds?: string[];
   createdAt: number;
   updatedAt: number;
   synced: boolean;
@@ -41,6 +51,11 @@ interface NotesDB extends DBSchema {
     value: Folder;
     indexes: { 'by-name': string };
   };
+  tags: {
+    key: string;
+    value: Tag;
+    indexes: { 'by-name': string };
+  };
   images: {
     key: string;
     value: NoteImage;
@@ -53,7 +68,7 @@ let dbInstance: IDBPDatabase<NotesDB> | null = null;
 export async function getDB() {
   if (dbInstance) return dbInstance;
 
-  dbInstance = await openDB<NotesDB>('notes-db', 3, {
+  dbInstance = await openDB<NotesDB>('notes-db', 4, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         const noteStore = db.createObjectStore('notes', { keyPath: 'id' });
@@ -66,6 +81,10 @@ export async function getDB() {
       if (oldVersion < 3) {
         const imageStore = db.createObjectStore('images', { keyPath: 'id' });
         imageStore.createIndex('by-noteId', 'noteId');
+      }
+      if (oldVersion < 4) {
+        const tagStore = db.createObjectStore('tags', { keyPath: 'id' });
+        tagStore.createIndex('by-name', 'name');
       }
     },
   });
@@ -173,4 +192,48 @@ export async function deleteImagesByNote(noteId: string): Promise<void> {
   const db = await getDB();
   const images = await getImagesByNote(noteId);
   await Promise.all(images.map(img => db.delete('images', img.id)));
+}
+
+// Tag operations
+export async function getAllTags(): Promise<Tag[]> {
+  const db = await getDB();
+  const tags = await db.getAllFromIndex('tags', 'by-name');
+  return tags.filter(tag => !tag.deleted);
+}
+
+export async function getTag(id: string): Promise<Tag | undefined> {
+  const db = await getDB();
+  return db.get('tags', id);
+}
+
+export async function saveTag(tag: Tag): Promise<void> {
+  const db = await getDB();
+  await db.put('tags', tag);
+}
+
+export async function deleteTag(id: string): Promise<void> {
+  const db = await getDB();
+  const tag = await getTag(id);
+  if (tag) {
+    await db.put('tags', { ...tag, deleted: true });
+  }
+  
+  // Remove tag from all notes
+  const allNotes = await db.getAll('notes');
+  for (const note of allNotes) {
+    if (note.tagIds?.includes(id)) {
+      await db.put('notes', {
+        ...note,
+        tagIds: note.tagIds.filter(tagId => tagId !== id),
+        updatedAt: Date.now(),
+        synced: false,
+      });
+    }
+  }
+}
+
+export async function getNotesByTag(tagId: string): Promise<Note[]> {
+  const db = await getDB();
+  const allNotes = await getAllNotes();
+  return allNotes.filter(note => note.tagIds?.includes(tagId));
 }
