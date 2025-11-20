@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { FolderManager } from '@/components/FolderManager';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 
 interface NotesListProps {
   notes: Note[];
@@ -19,7 +19,7 @@ interface NotesListProps {
   onDeleteFolder: (id: string) => void;
 }
 
-export function NotesList({
+const NotesListComponent = ({
   notes,
   folders,
   selectedFolderId,
@@ -29,7 +29,7 @@ export function NotesList({
   onNewNote,
   onCreateFolder,
   onDeleteFolder,
-}: NotesListProps) {
+}: NotesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredNotes = notes.filter(note =>
@@ -121,4 +121,6 @@ export function NotesList({
       </ScrollArea>
     </div>
   );
-}
+};
+
+export const NotesList = memo(NotesListComponent);
