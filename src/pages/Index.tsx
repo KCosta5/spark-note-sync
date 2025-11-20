@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, saveNote, saveFolder, deleteNote, deleteFolder, Priority } from '@/lib/db';
+import { Note, Folder, Tag, getAllNotes, getNotesByFolder, getAllFolders, getAllTags, getNote, saveNote, saveFolder, saveTag, deleteNote, deleteFolder, deleteTag, Priority } from '@/lib/db';
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
 import { SyncIndicator } from '@/components/SyncIndicator';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { TagSelector } from '@/components/TagSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
@@ -21,7 +22,9 @@ const SettingsDialog = lazy(() => import('@/components/SettingsDialog').then(m =
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -30,20 +33,34 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   const loadNotes = useCallback(async () => {
-    const loadedNotes = await getNotesByFolder(selectedFolderId);
+    let loadedNotes = await getNotesByFolder(selectedFolderId);
+    
+    // Filter by selected tags
+    if (selectedTagIds.length > 0) {
+      loadedNotes = loadedNotes.filter(note =>
+        selectedTagIds.every(tagId => note.tagIds?.includes(tagId))
+      );
+    }
+    
     setNotes(loadedNotes);
-  }, [selectedFolderId]);
+  }, [selectedFolderId, selectedTagIds]);
 
   const loadFolders = useCallback(async () => {
     const loadedFolders = await getAllFolders();
     setFolders(loadedFolders);
   }, []);
 
+  const loadTags = useCallback(async () => {
+    const loadedTags = await getAllTags();
+    setTags(loadedTags);
+  }, []);
+
   useEffect(() => {
     loadNotes();
     loadFolders();
+    loadTags();
     syncNotes();
-  }, [loadNotes, loadFolders]);
+  }, [loadNotes, loadFolders, loadTags]);
 
   const handleSelectNote = async (id: string) => {
     const note = await getNote(id);
@@ -101,6 +118,68 @@ const Index = () => {
       title: 'Pasta excluída',
       description: 'A pasta foi excluída com sucesso.',
     });
+  };
+
+  const handleCreateTag = async (name: string, color: string) => {
+    const newTag: Tag = {
+      id: crypto.randomUUID(),
+      name,
+      color,
+      createdAt: Date.now(),
+      synced: false,
+    };
+
+    await saveTag(newTag);
+    await loadTags();
+    
+    toast({
+      title: 'Tag criada',
+      description: `A tag "${name}" foi criada com sucesso.`,
+    });
+  };
+
+  const handleDeleteTag = async (id: string) => {
+    await deleteTag(id);
+    await loadTags();
+    await loadNotes();
+    setSelectedTagIds(selectedTagIds.filter(tagId => tagId !== id));
+    
+    toast({
+      title: 'Tag excluída',
+      description: 'A tag foi excluída com sucesso.',
+    });
+  };
+
+  const handleToggleTagFilter = (tagId: string) => {
+    setSelectedTagIds(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const handleToggleNoteTag = async (tagId: string) => {
+    if (!selectedNote) return;
+
+    const currentTagIds = selectedNote.tagIds || [];
+    const updatedTagIds = currentTagIds.includes(tagId)
+      ? currentTagIds.filter(id => id !== tagId)
+      : [...currentTagIds, tagId];
+
+    const updatedNote: Note = {
+      ...selectedNote,
+      tagIds: updatedTagIds,
+      updatedAt: Date.now(),
+      synced: false,
+    };
+
+    await saveNote(updatedNote);
+    await loadNotes();
+    setSelectedNote(updatedNote);
+
+    if (navigator.onLine) {
+      syncNotes();
+    }
   };
 
   const handleSave = useCallback(async () => {
@@ -194,13 +273,18 @@ const Index = () => {
     <NotesList
       notes={notes}
       folders={folders}
+      tags={tags}
       selectedFolderId={selectedFolderId}
+      selectedTagIds={selectedTagIds}
       selectedNoteId={selectedNote?.id}
       onSelectNote={handleSelectNote}
       onSelectFolder={setSelectedFolderId}
+      onSelectTag={handleToggleTagFilter}
       onNewNote={handleNewNote}
       onCreateFolder={handleCreateFolder}
       onDeleteFolder={handleDeleteFolder}
+      onCreateTag={handleCreateTag}
+      onDeleteTag={handleDeleteTag}
     />
   );
 
@@ -247,6 +331,11 @@ const Index = () => {
               <SyncIndicator />
               {selectedNote && (
                 <>
+                  <TagSelector
+                    tags={tags}
+                    selectedTagIds={selectedNote.tagIds || []}
+                    onToggleTag={handleToggleNoteTag}
+                  />
                   <Select value={selectedNote.priority} onValueChange={handlePriorityChange}>
                     <SelectTrigger className="w-32">
                       <Flag className="h-4 w-4 mr-2" />

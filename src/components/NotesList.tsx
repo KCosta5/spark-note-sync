@@ -1,34 +1,45 @@
-import { Note, Priority, Folder } from '@/lib/db';
+import { Note, Priority, Folder, Tag } from '@/lib/db';
 import { Plus, Search, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { FolderManager } from '@/components/FolderManager';
+import { TagManager } from '@/components/TagManager';
 import { useState, memo } from 'react';
 
 interface NotesListProps {
   notes: Note[];
   folders: Folder[];
+  tags: Tag[];
   selectedFolderId?: string;
+  selectedTagIds: string[];
   selectedNoteId?: string;
   onSelectNote: (id: string) => void;
   onSelectFolder: (folderId?: string) => void;
+  onSelectTag: (tagId: string) => void;
   onNewNote: () => void;
   onCreateFolder: (name: string) => void;
   onDeleteFolder: (id: string) => void;
+  onCreateTag: (name: string, color: string) => void;
+  onDeleteTag: (id: string) => void;
 }
 
 const NotesListComponent = ({
   notes,
   folders,
+  tags,
   selectedFolderId,
+  selectedTagIds,
   selectedNoteId,
   onSelectNote,
   onSelectFolder,
+  onSelectTag,
   onNewNote,
   onCreateFolder,
   onDeleteFolder,
+  onCreateTag,
+  onDeleteTag,
 }: NotesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -63,6 +74,13 @@ const NotesListComponent = ({
         onSelectFolder={onSelectFolder}
         onCreateFolder={onCreateFolder}
         onDeleteFolder={onDeleteFolder}
+      />
+      <TagManager
+        tags={tags}
+        selectedTagIds={selectedTagIds}
+        onSelectTag={onSelectTag}
+        onCreateTag={onCreateTag}
+        onDeleteTag={onDeleteTag}
       />
       <div className="p-4 border-b border-border space-y-3">
         <div className="flex items-center justify-between">
@@ -111,6 +129,28 @@ const NotesListComponent = ({
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {getPreviewText(note.content)}
                 </p>
+                {note.tagIds && note.tagIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {note.tagIds.map(tagId => {
+                      const tag = tags.find(t => t.id === tagId);
+                      if (!tag) return null;
+                      return (
+                        <Badge
+                          key={tagId}
+                          variant="outline"
+                          className="text-xs h-5"
+                          style={{
+                            borderColor: tag.color,
+                            backgroundColor: `${tag.color}15`,
+                            color: tag.color,
+                          }}
+                        >
+                          {tag.name}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   {new Date(note.updatedAt).toLocaleDateString()}
                 </p>
