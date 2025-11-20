@@ -3,6 +3,7 @@ import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, sa
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
 import { SyncIndicator } from '@/components/SyncIndicator';
+import { InstallPrompt } from '@/components/InstallPrompt';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
@@ -314,6 +315,7 @@ const Index = () => {
           )}
         </main>
       </div>
+      <InstallPrompt />
     </div>
       </Sheet>
     </ThemeProvider>
