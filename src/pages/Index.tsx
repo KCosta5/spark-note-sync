@@ -1,10 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, saveNote, saveFolder, deleteNote, deleteFolder, Priority } from '@/lib/db';
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
-import { NoteEditor } from '@/components/NoteEditor';
 import { SyncIndicator } from '@/components/SyncIndicator';
-import { SettingsDialog } from '@/components/SettingsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Menu, FileText, Download, Flag } from 'lucide-react';
@@ -13,6 +11,11 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ThemeProvider } from 'next-themes';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load heavy components
+const NoteEditor = lazy(() => import('@/components/NoteEditor').then(m => ({ default: m.NoteEditor })));
+const SettingsDialog = lazy(() => import('@/components/SettingsDialog').then(m => ({ default: m.SettingsDialog })));
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -237,7 +240,9 @@ const Index = () => {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <SettingsDialog />
+              <Suspense fallback={<Skeleton className="h-9 w-9 rounded-md" />}>
+                <SettingsDialog />
+              </Suspense>
               <SyncIndicator />
               {selectedNote && (
                 <>
@@ -277,11 +282,20 @@ const Index = () => {
 
         <main className="flex-1 overflow-hidden bg-gradient-subtle">
           {selectedNote ? (
-            <NoteEditor
-              content={content}
-              onChange={setContent}
-              noteId={selectedNote.id}
-            />
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-full">
+                <div className="space-y-4 w-full max-w-4xl px-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-64 w-full" />
+                </div>
+              </div>
+            }>
+              <NoteEditor
+                content={content}
+                onChange={setContent}
+                noteId={selectedNote.id}
+              />
+            </Suspense>
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center space-y-4 max-w-md px-4">
