@@ -8,107 +8,115 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 220 18% 97%;
-    --foreground: 222 47% 11%;
+    /* Emerald Prestige — light */
+    --background: 44 38% 96%;
+    --foreground: 162 60% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 162 60% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 162 60% 8%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    --primary: 162 78% 17%;
+    --primary-foreground: 44 50% 96%;
+    --primary-glow: 162 60% 27%;
 
-    --secondary: 142 76% 36%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 44 50% 90%;
+    --secondary-foreground: 162 60% 12%;
 
-    --muted: 220 14% 93%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 44 30% 92%;
+    --muted-foreground: 162 15% 35%;
 
-    --accent: 142 76% 36%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 42 55% 54%;
+    --accent-foreground: 162 60% 10%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 44 25% 86%;
+    --input: 44 25% 86%;
+    --ring: 162 78% 17%;
 
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
+    --success: 162 70% 30%;
+    --warning: 42 80% 50%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(142 76% 36%));
-    --gradient-subtle: linear-gradient(180deg, hsl(220 18% 99%), hsl(220 18% 97%));
-    
-    --shadow-soft: 0 2px 6px hsl(215 25% 15% / 0.06);
-    --shadow-medium: 0 4px 12px hsl(215 25% 15% / 0.1);
-    --shadow-glow: 0 0 20px hsl(210 70% 45% / 0.12);
+    --gradient-primary: linear-gradient(135deg, hsl(162 78% 17%), hsl(162 60% 27%));
+    --gradient-accent: linear-gradient(135deg, hsl(42 55% 54%), hsl(42 70% 68%));
+    --gradient-subtle: linear-gradient(180deg, hsl(44 40% 98%), hsl(44 38% 95%));
+    --gradient-hero: radial-gradient(ellipse at top, hsl(162 70% 22% / 0.12), transparent 60%);
+
+    --shadow-soft: 0 1px 2px hsl(162 60% 8% / 0.04), 0 2px 8px hsl(162 60% 8% / 0.04);
+    --shadow-medium: 0 4px 16px hsl(162 60% 8% / 0.08);
+    --shadow-glow: 0 0 32px hsl(42 55% 54% / 0.25);
+    --shadow-elegant: 0 10px 40px -10px hsl(162 78% 17% / 0.25);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 210 70% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 15% 96%;
-    --sidebar-accent-foreground: 215 25% 15%;
-    --sidebar-border: 210 15% 88%;
-    --sidebar-ring: 210 70% 45%;
+    --sidebar-background: 162 45% 11%;
+    --sidebar-foreground: 44 40% 92%;
+    --sidebar-primary: 42 55% 54%;
+    --sidebar-primary-foreground: 162 60% 10%;
+    --sidebar-accent: 162 40% 17%;
+    --sidebar-accent-foreground: 44 40% 95%;
+    --sidebar-border: 162 35% 18%;
+    --sidebar-ring: 42 55% 54%;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 220 18% 97%;
+    /* Emerald Prestige — dark */
+    --background: 162 45% 7%;
+    --foreground: 44 40% 95%;
 
-    --card: 222 40% 15%;
-    --card-foreground: 220 18% 97%;
+    --card: 162 40% 10%;
+    --card-foreground: 44 40% 95%;
 
-    --popover: 222 40% 15%;
-    --popover-foreground: 220 18% 97%;
+    --popover: 162 40% 10%;
+    --popover-foreground: 44 40% 95%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 217 91% 70%;
+    --primary: 42 55% 54%;
+    --primary-foreground: 162 60% 10%;
+    --primary-glow: 42 70% 68%;
 
-    --secondary: 142 76% 36%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 162 35% 16%;
+    --secondary-foreground: 44 40% 95%;
 
-    --muted: 222 35% 18%;
-    --muted-foreground: 220 9% 65%;
+    --muted: 162 30% 14%;
+    --muted-foreground: 44 20% 70%;
 
-    --accent: 142 76% 36%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 42 55% 54%;
+    --accent-foreground: 162 60% 10%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 220 18% 97%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 44 40% 95%;
 
-    --border: 222 35% 22%;
-    --input: 222 35% 22%;
-    --ring: 217 91% 60%;
+    --border: 162 30% 18%;
+    --input: 162 30% 18%;
+    --ring: 42 55% 54%;
 
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
+    --success: 162 60% 45%;
+    --warning: 42 80% 55%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(142 76% 36%));
-    --gradient-subtle: linear-gradient(180deg, hsl(222 47% 13%), hsl(222 47% 11%));
-    
-    --shadow-soft: 0 2px 6px hsl(0 0% 0% / 0.3);
-    --shadow-medium: 0 4px 12px hsl(0 0% 0% / 0.4);
-    --shadow-glow: 0 0 20px hsl(210 70% 55% / 0.2);
+    --gradient-primary: linear-gradient(135deg, hsl(162 60% 22%), hsl(42 55% 44%));
+    --gradient-accent: linear-gradient(135deg, hsl(42 55% 54%), hsl(42 70% 68%));
+    --gradient-subtle: linear-gradient(180deg, hsl(162 42% 9%), hsl(162 45% 7%));
+    --gradient-hero: radial-gradient(ellipse at top, hsl(42 55% 54% / 0.15), transparent 60%);
 
-    --sidebar-background: 215 28% 12%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 210 70% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 20%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 215 20% 22%;
-    --sidebar-ring: 210 70% 55%;
+    --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.3), 0 2px 8px hsl(0 0% 0% / 0.25);
+    --shadow-medium: 0 4px 16px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 32px hsl(42 55% 54% / 0.3);
+    --shadow-elegant: 0 10px 40px -10px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 162 50% 5%;
+    --sidebar-foreground: 44 40% 92%;
+    --sidebar-primary: 42 55% 54%;
+    --sidebar-primary-foreground: 162 60% 10%;
+    --sidebar-accent: 162 40% 12%;
+    --sidebar-accent-foreground: 44 40% 95%;
+    --sidebar-border: 162 35% 14%;
+    --sidebar-ring: 42 55% 54%;
   }
 }
 
@@ -119,17 +127,30 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', system-ui, sans-serif;
     @apply font-semibold tracking-tight;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer utilities {
   .gradient-primary {
     background: var(--gradient-primary);
+  }
+
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
   }
 
   .gradient-subtle {
@@ -148,8 +169,17 @@ All colors MUST be HSL.
     box-shadow: var(--shadow-glow);
   }
 
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+
   .transition-smooth {
     transition: var(--transition-smooth);
+  }
+
+  .font-display {
+    font-family: 'Outfit', system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 

@@ -219,7 +219,7 @@ const Index = () => {
           )}
 
           <div className="flex-1 flex flex-col overflow-hidden">
-            <header className="border-b border-border bg-card px-6 py-4">
+            <header className="border-b border-border bg-card/80 backdrop-blur-md px-6 py-4 sticky top-0 z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {isMobile && (
@@ -237,7 +237,7 @@ const Index = () => {
                   className="text-xl font-semibold border-none shadow-none px-0 focus-visible:ring-0"
                 />
               ) : (
-                <h1 className="text-xl font-semibold">Caderno Escolar</h1>
+                <h1 className="text-xl font-display font-semibold tracking-tight">Caderno Escolar</h1>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -281,7 +281,8 @@ const Index = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-hidden bg-gradient-subtle">
+        <main className="flex-1 overflow-hidden gradient-subtle relative">
+          <div className="absolute inset-0 gradient-hero pointer-events-none" />
           {selectedNote ? (
             <Suspense fallback={
               <div className="flex items-center justify-center h-full">
@@ -298,16 +299,16 @@ const Index = () => {
               />
             </Suspense>
           ) : (
-            <div className="flex items-center justify-center h-full">
+            <div className="relative flex items-center justify-center h-full">
               <div className="text-center space-y-4 max-w-md px-4">
-                <div className="w-16 h-16 mx-auto gradient-primary rounded-2xl flex items-center justify-center shadow-glow">
-                  <FileText className="h-8 w-8 text-white" />
+                <div className="w-20 h-20 mx-auto gradient-primary rounded-2xl flex items-center justify-center shadow-elegant ring-1 ring-primary/20">
+                  <FileText className="h-9 w-9 text-primary-foreground" />
                 </div>
-                <h2 className="text-2xl font-semibold">Bem-vindo ao Caderno Escolar</h2>
+                <h2 className="text-3xl font-display font-semibold tracking-tight">Bem-vindo ao Caderno Escolar</h2>
                 <p className="text-muted-foreground">
                   Seu caderno digital para estudos. Crie uma nova anotação para começar, e tudo será sincronizado automaticamente quando você estiver online.
                 </p>
-                <Button onClick={handleNewNote} className="gradient-primary text-white shadow-soft">
+                <Button onClick={handleNewNote} size="lg" className="gradient-primary text-primary-foreground shadow-elegant hover:shadow-glow transition-smooth">
                   Criar Primeira Anotação
                 </Button>
               </div>
