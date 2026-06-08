@@ -707,7 +707,35 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         >
           <Highlighter className="h-4 w-4" />
         </Button>
+        <Separator orientation="vertical" className="h-6 mx-1" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={insertMermaid}
+          title="Diagrama Mermaid"
+        >
+          <GitBranch className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={insertMath}
+          title="Fórmula matemática (KaTeX)"
+        >
+          <Sigma className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShortcutsOpen(true)}
+          title="Atalhos de teclado (Ctrl+/)"
+          className="ml-auto"
+        >
+          <Keyboard className="h-4 w-4" />
+        </Button>
       </div>
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       
       {/* Floating formatting toolbar */}
       {toolbarVisible && (
