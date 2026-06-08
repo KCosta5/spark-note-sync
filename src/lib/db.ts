@@ -100,6 +100,62 @@ export async function deleteNote(id: string): Promise<void> {
   }
 }
 
+// Trash operations
+export async function getDeletedNotes(): Promise<Note[]> {
+  const db = await getDB();
+  const notes = await db.getAllFromIndex('notes', 'by-updated');
+  return notes
+    .filter(note => note.deleted)
+    .map(note => ({ ...note, priority: (note.priority || 'medium') as Priority }))
+    .reverse();
+}
+
+export async function restoreNote(id: string): Promise<void> {
+  const db = await getDB();
+  const note = await db.get('notes', id);
+  if (note) {
+    await db.put('notes', { ...note, deleted: false, synced: false, updatedAt: Date.now() });
+  }
+}
+
+export async function permanentlyDeleteNote(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('notes', id);
+  await deleteImagesByNote(id);
+}
+
+export async function emptyTrash(): Promise<void> {
+  const deleted = await getDeletedNotes();
+  await Promise.all(deleted.map(n => permanentlyDeleteNote(n.id)));
+}
+
+export async function purgeOldTrash(maxAgeMs = 30 * 24 * 60 * 60 * 1000): Promise<void> {
+  const deleted = await getDeletedNotes();
+  const cutoff = Date.now() - maxAgeMs;
+  await Promise.all(
+    deleted.filter(n => n.updatedAt < cutoff).map(n => permanentlyDeleteNote(n.id))
+  );
+}
+
+export async function getAllNotesIncludingDeleted(): Promise<Note[]> {
+  const db = await getDB();
+  return db.getAll('notes');
+}
+
+export async function getAllImages(): Promise<NoteImage[]> {
+  const db = await getDB();
+  return db.getAll('images');
+}
+
+export async function clearAllData(): Promise<void> {
+  const db = await getDB();
+  await Promise.all([
+    db.clear('notes'),
+    db.clear('folders'),
+    db.clear('images'),
+  ]);
+}
+
 export async function getUnsyncedNotes(): Promise<Note[]> {
   const db = await getDB();
   const allNotes = await db.getAll('notes');
