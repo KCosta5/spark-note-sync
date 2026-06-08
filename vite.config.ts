@@ -15,29 +15,56 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'Caderno Escolar - Anotações em Markdown',
         short_name: 'Caderno',
         description: 'Seu caderno digital para estudos com suporte completo a Markdown',
-        theme_color: '#7c3aed',
-        background_color: '#fafafa',
+        theme_color: '#0a4d3a',
+        background_color: '#f5f0e0',
+        lang: 'pt-BR',
+        dir: 'ltr',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         start_url: '/',
+        id: '/',
         scope: '/',
-        orientation: 'any',
+        orientation: 'portrait-primary',
         categories: ['education', 'productivity'],
+        prefer_related_applications: false,
         icons: [
           {
             src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: '/apple-touch-icon.png',
+            sizes: '180x180',
+            type: 'image/png',
+            purpose: 'any'
+          }
+        ],
+        shortcuts: [
+          {
+            name: 'Nova Anotação',
+            short_name: 'Nova',
+            description: 'Criar uma nova anotação',
+            url: '/?action=new',
+            icons: [{ src: '/pwa-192x192.png', sizes: '192x192' }]
           }
         ]
       },
