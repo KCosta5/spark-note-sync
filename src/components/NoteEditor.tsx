@@ -1,12 +1,16 @@
 import { useState, useRef, useCallback, useMemo, useEffect, useLayoutEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter, GitBranch, Sigma, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { saveImage, getImage } from '@/lib/db';
+import { MermaidBlock } from '@/components/MermaidBlock';
+import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 
 interface NoteEditorProps {
   content: string;
@@ -18,6 +22,7 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
   const [isMobile, setIsMobile] = useState(false);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
