@@ -1,12 +1,16 @@
 import { useState, useRef, useCallback, useMemo, useEffect, useLayoutEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter, GitBranch, Sigma, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { saveImage, getImage } from '@/lib/db';
+import { MermaidBlock } from '@/components/MermaidBlock';
+import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
 
 interface NoteEditorProps {
   content: string;
@@ -18,6 +22,7 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
   const [isMobile, setIsMobile] = useState(false);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -285,6 +290,14 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
     insertMarkdown('==', '==', 'texto destacado');
   }, [insertMarkdown]);
 
+  const insertMermaid = useCallback(() => {
+    insertMarkdown('\n```mermaid\ngraph TD\n  A[Início] --> B{Decisão}\n  B -->|Sim| C[Fim]\n  B -->|Não| A\n```\n', '', '');
+  }, [insertMarkdown]);
+
+  const insertMath = useCallback(() => {
+    insertMarkdown('\n$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$\n', '', '');
+  }, [insertMarkdown]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Auto-continue lists on Enter
     if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !(e.ctrlKey || e.metaKey)) {
@@ -373,26 +386,83 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
 
     // existing shortcuts (Ctrl/Cmd + ...)
     if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
+      const k = e.key.toLowerCase();
+      if (e.shiftKey) {
+        switch (k) {
+          case 'h':
+            e.preventDefault();
+            insertMarkdown('==', '==', 'texto destacado');
+            return;
+          case '!':
+          case '1':
+            e.preventDefault();
+            insertAtLineStart('# ');
+            return;
+          case '@':
+          case '2':
+            e.preventDefault();
+            insertAtLineStart('## ');
+            return;
+          case '#':
+          case '3':
+            e.preventDefault();
+            insertAtLineStart('### ');
+            return;
+          case 'l':
+            e.preventDefault();
+            insertAtLineStart('- ');
+            return;
+          case 'o':
+            e.preventDefault();
+            insertAtLineStart('1. ');
+            return;
+          case 'c':
+            e.preventDefault();
+            insertAtLineStart('- [ ] ');
+            return;
+          case 'q':
+            e.preventDefault();
+            insertAtLineStart('> ');
+            return;
+          case 'e':
+            e.preventDefault();
+            insertMarkdown('\n```\n', '\n```\n', 'código');
+            return;
+        }
+      }
+      switch (k) {
         case 'b':
           e.preventDefault();
           insertMarkdown('**', '**', 'negrito');
-          break;
+          return;
         case 'i':
           e.preventDefault();
           insertMarkdown('*', '*', 'itálico');
-          break;
+          return;
         case 'k':
           e.preventDefault();
           insertMarkdown('[', '](url)', 'texto do link');
-          break;
+          return;
         case '`':
           e.preventDefault();
           insertMarkdown('`', '`', 'código');
-          break;
+          return;
+        case 'p':
+          e.preventDefault();
+          setViewMode((v) => (v === 'preview' ? 'edit' : 'preview'));
+          return;
+        case 's':
+          e.preventDefault();
+          // Force-save is handled by parent debounce; trigger a no-op change to flush
+          onChange(content);
+          return;
+        case '/':
+          e.preventDefault();
+          setShortcutsOpen(true);
+          return;
       }
     }
-  }, [content, insertMarkdown, onChange]);
+  }, [content, insertMarkdown, insertAtLineStart, onChange]);
 
   // Auto-switch to single pane on mobile
   useEffect(() => {
@@ -406,8 +476,8 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
     
     return (
       <ReactMarkdown 
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
         urlTransform={(url) => {
           if (typeof url === 'string') {
             // Handle IndexedDB images
@@ -448,6 +518,19 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
           mark: ({ node, ...props }) => (
             <mark className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded" {...props} />
           ),
+          code: ({ node, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const lang = match?.[1];
+            const isInline = !className;
+            if (!isInline && lang === 'mermaid') {
+              return <MermaidBlock code={String(children).replace(/\n$/, '')} />;
+            }
+            return (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            );
+          },
         }}
       >
         {processedContent}
@@ -624,7 +707,35 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         >
           <Highlighter className="h-4 w-4" />
         </Button>
+        <Separator orientation="vertical" className="h-6 mx-1" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={insertMermaid}
+          title="Diagrama Mermaid"
+        >
+          <GitBranch className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={insertMath}
+          title="Fórmula matemática (KaTeX)"
+        >
+          <Sigma className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShortcutsOpen(true)}
+          title="Atalhos de teclado (Ctrl+/)"
+          className="ml-auto"
+        >
+          <Keyboard className="h-4 w-4" />
+        </Button>
       </div>
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       
       {/* Floating formatting toolbar */}
       {toolbarVisible && (
