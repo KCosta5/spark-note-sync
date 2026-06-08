@@ -386,26 +386,83 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
 
     // existing shortcuts (Ctrl/Cmd + ...)
     if (e.ctrlKey || e.metaKey) {
-      switch (e.key) {
+      const k = e.key.toLowerCase();
+      if (e.shiftKey) {
+        switch (k) {
+          case 'h':
+            e.preventDefault();
+            insertMarkdown('==', '==', 'texto destacado');
+            return;
+          case '!':
+          case '1':
+            e.preventDefault();
+            insertAtLineStart('# ');
+            return;
+          case '@':
+          case '2':
+            e.preventDefault();
+            insertAtLineStart('## ');
+            return;
+          case '#':
+          case '3':
+            e.preventDefault();
+            insertAtLineStart('### ');
+            return;
+          case 'l':
+            e.preventDefault();
+            insertAtLineStart('- ');
+            return;
+          case 'o':
+            e.preventDefault();
+            insertAtLineStart('1. ');
+            return;
+          case 'c':
+            e.preventDefault();
+            insertAtLineStart('- [ ] ');
+            return;
+          case 'q':
+            e.preventDefault();
+            insertAtLineStart('> ');
+            return;
+          case 'e':
+            e.preventDefault();
+            insertMarkdown('\n```\n', '\n```\n', 'código');
+            return;
+        }
+      }
+      switch (k) {
         case 'b':
           e.preventDefault();
           insertMarkdown('**', '**', 'negrito');
-          break;
+          return;
         case 'i':
           e.preventDefault();
           insertMarkdown('*', '*', 'itálico');
-          break;
+          return;
         case 'k':
           e.preventDefault();
           insertMarkdown('[', '](url)', 'texto do link');
-          break;
+          return;
         case '`':
           e.preventDefault();
           insertMarkdown('`', '`', 'código');
-          break;
+          return;
+        case 'p':
+          e.preventDefault();
+          setViewMode((v) => (v === 'preview' ? 'edit' : 'preview'));
+          return;
+        case 's':
+          e.preventDefault();
+          // Force-save is handled by parent debounce; trigger a no-op change to flush
+          onChange(content);
+          return;
+        case '/':
+          e.preventDefault();
+          setShortcutsOpen(true);
+          return;
       }
     }
-  }, [content, insertMarkdown, onChange]);
+  }, [content, insertMarkdown, insertAtLineStart, onChange]);
 
   // Auto-switch to single pane on mobile
   useEffect(() => {
