@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, saveNote, saveFolder, deleteNote, deleteFolder, Priority } from '@/lib/db';
+import { Note, Folder, getAllNotes, getNotesByFolder, getAllFolders, getNote, saveNote, saveFolder, deleteNote, deleteFolder, Priority, getDeletedNotes, restoreNote, permanentlyDeleteNote, emptyTrash, purgeOldTrash } from '@/lib/db';
 import { syncNotes } from '@/lib/sync';
 import { NotesList } from '@/components/NotesList';
 import { SyncIndicator } from '@/components/SyncIndicator';
@@ -26,13 +26,23 @@ const Index = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [viewingTrash, setViewingTrash] = useState(false);
+  const [trashCount, setTrashCount] = useState(0);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const loadNotes = useCallback(async () => {
-    const loadedNotes = await getNotesByFolder(selectedFolderId);
-    setNotes(loadedNotes);
-  }, [selectedFolderId]);
+    if (viewingTrash) {
+      const deleted = await getDeletedNotes();
+      setNotes(deleted);
+      setTrashCount(deleted.length);
+    } else {
+      const loadedNotes = await getNotesByFolder(selectedFolderId);
+      setNotes(loadedNotes);
+      const deleted = await getDeletedNotes();
+      setTrashCount(deleted.length);
+    }
+  }, [selectedFolderId, viewingTrash]);
 
   const loadFolders = useCallback(async () => {
     const loadedFolders = await getAllFolders();
@@ -43,7 +53,41 @@ const Index = () => {
     loadNotes();
     loadFolders();
     syncNotes();
+    purgeOldTrash().catch(() => {});
   }, [loadNotes, loadFolders]);
+
+  const handleToggleTrash = useCallback(() => {
+    setViewingTrash((v) => !v);
+    setSelectedNote(null);
+    setTitle('');
+    setContent('');
+  }, []);
+
+  const handleRestoreNote = useCallback(async (id: string) => {
+    await restoreNote(id);
+    await loadNotes();
+    toast({ title: 'Nota restaurada', description: 'A nota voltou para os seus cadernos.' });
+  }, [loadNotes, toast]);
+
+  const handlePermanentDelete = useCallback(async (id: string) => {
+    await permanentlyDeleteNote(id);
+    if (selectedNote?.id === id) {
+      setSelectedNote(null);
+      setTitle('');
+      setContent('');
+    }
+    await loadNotes();
+    toast({ title: 'Nota excluída permanentemente' });
+  }, [loadNotes, selectedNote, toast]);
+
+  const handleEmptyTrash = useCallback(async () => {
+    await emptyTrash();
+    setSelectedNote(null);
+    setTitle('');
+    setContent('');
+    await loadNotes();
+    toast({ title: 'Lixeira esvaziada' });
+  }, [loadNotes, toast]);
 
   const handleSelectNote = async (id: string) => {
     const note = await getNote(id);
@@ -201,6 +245,12 @@ const Index = () => {
       onNewNote={handleNewNote}
       onCreateFolder={handleCreateFolder}
       onDeleteFolder={handleDeleteFolder}
+      viewingTrash={viewingTrash}
+      trashCount={trashCount}
+      onToggleTrash={handleToggleTrash}
+      onRestoreNote={handleRestoreNote}
+      onPermanentDelete={handlePermanentDelete}
+      onEmptyTrash={handleEmptyTrash}
     />
   );
 
