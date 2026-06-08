@@ -290,6 +290,14 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
     insertMarkdown('==', '==', 'texto destacado');
   }, [insertMarkdown]);
 
+  const insertMermaid = useCallback(() => {
+    insertMarkdown('\n```mermaid\ngraph TD\n  A[Início] --> B{Decisão}\n  B -->|Sim| C[Fim]\n  B -->|Não| A\n```\n', '', '');
+  }, [insertMarkdown]);
+
+  const insertMath = useCallback(() => {
+    insertMarkdown('\n$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$\n', '', '');
+  }, [insertMarkdown]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Auto-continue lists on Enter
     if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !(e.ctrlKey || e.metaKey)) {
