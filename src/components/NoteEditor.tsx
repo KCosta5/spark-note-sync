@@ -476,8 +476,8 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
     
     return (
       <ReactMarkdown 
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
         urlTransform={(url) => {
           if (typeof url === 'string') {
             // Handle IndexedDB images
@@ -518,6 +518,19 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
           mark: ({ node, ...props }) => (
             <mark className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded" {...props} />
           ),
+          code: ({ node, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const lang = match?.[1];
+            const isInline = !className;
+            if (!isInline && lang === 'mermaid') {
+              return <MermaidBlock code={String(children).replace(/\n$/, '')} />;
+            }
+            return (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            );
+          },
         }}
       >
         {processedContent}
