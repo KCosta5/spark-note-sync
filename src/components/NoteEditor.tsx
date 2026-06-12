@@ -589,7 +589,14 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   }, [content, imageUrls]);
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full relative">
+    <div
+      ref={containerRef}
+      className={
+        focusMode
+          ? 'fixed inset-0 z-50 flex flex-col bg-background'
+          : 'flex flex-col h-full relative'
+      }
+    >
       <div className="flex flex-wrap items-center gap-1 px-2 sm:px-4 py-2 border-b border-border bg-muted/30 overflow-x-auto">
         <div className="flex gap-1 mr-2 shrink-0">
           <Button
