@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter, GitBranch, Sigma, Keyboard } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter, GitBranch, Sigma, Keyboard, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +23,8 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
