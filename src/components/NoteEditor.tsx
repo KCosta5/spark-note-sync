@@ -847,12 +847,43 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         
         {(viewMode === 'preview' || (viewMode === 'split' && !isMobile)) && (
           <div className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} overflow-auto p-4 sm:p-6`}>
-            <article className="prose prose-sm sm:prose dark:prose-invert max-w-none prose-ul:list-disc prose-ol:list-decimal prose-li:my-1">
+            <article className={`prose prose-sm sm:prose dark:prose-invert max-w-none prose-ul:list-disc prose-ol:list-decimal prose-li:my-1 ${focusMode ? 'mx-auto max-w-3xl prose-lg' : ''}`}>
   {renderedMarkdown}
 </article>
           </div>
         )}
       </div>
+      {focusMode && (
+        <div className="border-t border-border bg-card/80 backdrop-blur-md px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-muted-foreground gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+            <span><strong className="text-foreground">{stats.words}</strong> palavras</span>
+            <span><strong className="text-foreground">{stats.chars}</strong> caracteres</span>
+            <span className="hidden sm:inline"><strong className="text-foreground">{stats.charsNoSpace}</strong> sem espaços</span>
+            <span>~<strong className="text-foreground">{stats.readMin}</strong> min de leitura</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono tabular-nums text-foreground">{formatTime(sessionSeconds)}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setSessionSeconds(0)}
+              title="Reiniciar cronômetro"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFocusMode(false)}
+              title="Sair do modo foco (Esc)"
+              className="h-7"
+            >
+              Sair
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
