@@ -20,6 +20,8 @@ const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: 'Ctrl/Cmd + P', action: 'Alternar Preview / Edição' },
   { keys: 'Ctrl/Cmd + S', action: 'Salvar agora' },
   { keys: 'Ctrl/Cmd + /', action: 'Abrir esta lista de atalhos' },
+  { keys: 'Ctrl/Cmd + . ou F11', action: 'Modo foco / tela cheia' },
+  { keys: 'Esc', action: 'Sair do modo foco' },
 ];
 
 export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcutsDialogProps) {

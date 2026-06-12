@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter, GitBranch, Sigma, Keyboard } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, CheckSquare, Heading1, Heading2, Heading3, Quote, Code, Table as TableIcon, Eye, Edit3, Link as LinkIcon, Image as ImageIcon, Upload, Highlighter, GitBranch, Sigma, Keyboard, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +23,8 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -460,7 +462,16 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
           e.preventDefault();
           setShortcutsOpen(true);
           return;
+        case '.':
+          e.preventDefault();
+          setFocusMode((v) => !v);
+          return;
       }
+    }
+    if (e.key === 'F11') {
+      e.preventDefault();
+      setFocusMode((v) => !v);
+      return;
     }
   }, [content, insertMarkdown, insertAtLineStart, onChange]);
 
@@ -470,6 +481,45 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
       setViewMode('edit');
     }
   }, [isMobile, viewMode]);
+
+  // Focus mode: session timer + esc handler
+  useEffect(() => {
+    if (!focusMode) return;
+    setSessionSeconds(0);
+    let paused = document.hidden;
+    const id = window.setInterval(() => {
+      if (!paused) setSessionSeconds((s) => s + 1);
+    }, 1000);
+    const onVis = () => { paused = document.hidden; };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setFocusMode(false);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [focusMode]);
+
+  const stats = useMemo(() => {
+    const trimmed = (content || '').trim();
+    const words = trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+    const chars = (content || '').length;
+    const charsNoSpace = (content || '').replace(/\s/g, '').length;
+    const readMin = Math.max(1, Math.ceil(words / 200));
+    return { words, chars, charsNoSpace, readMin };
+  }, [content]);
+
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   const renderedMarkdown = useMemo(() => {
     const processedContent = (content || '*Nenhum conteúdo ainda...*').replace(/==(.*?)==/g, '<mark>$1</mark>');
@@ -539,7 +589,14 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
   }, [content, imageUrls]);
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full relative">
+    <div
+      ref={containerRef}
+      className={
+        focusMode
+          ? 'fixed inset-0 z-50 flex flex-col bg-background'
+          : 'flex flex-col h-full relative'
+      }
+    >
       <div className="flex flex-wrap items-center gap-1 px-2 sm:px-4 py-2 border-b border-border bg-muted/30 overflow-x-auto">
         <div className="flex gap-1 mr-2 shrink-0">
           <Button
@@ -733,6 +790,14 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         >
           <Keyboard className="h-4 w-4" />
         </Button>
+        <Button
+          variant={focusMode ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setFocusMode((v) => !v)}
+          title={focusMode ? 'Sair do modo foco (Esc)' : 'Modo foco (Ctrl+.)'}
+        >
+          {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </Button>
       </div>
 
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
@@ -782,12 +847,43 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         
         {(viewMode === 'preview' || (viewMode === 'split' && !isMobile)) && (
           <div className={`${viewMode === 'split' && !isMobile ? 'w-1/2' : 'w-full'} overflow-auto p-4 sm:p-6`}>
-            <article className="prose prose-sm sm:prose dark:prose-invert max-w-none prose-ul:list-disc prose-ol:list-decimal prose-li:my-1">
+            <article className={`prose prose-sm sm:prose dark:prose-invert max-w-none prose-ul:list-disc prose-ol:list-decimal prose-li:my-1 ${focusMode ? 'mx-auto max-w-3xl prose-lg' : ''}`}>
   {renderedMarkdown}
 </article>
           </div>
         )}
       </div>
+      {focusMode && (
+        <div className="border-t border-border bg-card/80 backdrop-blur-md px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-muted-foreground gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+            <span><strong className="text-foreground">{stats.words}</strong> palavras</span>
+            <span><strong className="text-foreground">{stats.chars}</strong> caracteres</span>
+            <span className="hidden sm:inline"><strong className="text-foreground">{stats.charsNoSpace}</strong> sem espaços</span>
+            <span>~<strong className="text-foreground">{stats.readMin}</strong> min de leitura</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono tabular-nums text-foreground">{formatTime(sessionSeconds)}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setSessionSeconds(0)}
+              title="Reiniciar cronômetro"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFocusMode(false)}
+              title="Sair do modo foco (Esc)"
+              className="h-7"
+            >
+              Sair
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
