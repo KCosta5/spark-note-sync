@@ -462,7 +462,16 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
           e.preventDefault();
           setShortcutsOpen(true);
           return;
+        case '.':
+          e.preventDefault();
+          setFocusMode((v) => !v);
+          return;
       }
+    }
+    if (e.key === 'F11') {
+      e.preventDefault();
+      setFocusMode((v) => !v);
+      return;
     }
   }, [content, insertMarkdown, insertAtLineStart, onChange]);
 
@@ -472,6 +481,45 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
       setViewMode('edit');
     }
   }, [isMobile, viewMode]);
+
+  // Focus mode: session timer + esc handler
+  useEffect(() => {
+    if (!focusMode) return;
+    setSessionSeconds(0);
+    let paused = document.hidden;
+    const id = window.setInterval(() => {
+      if (!paused) setSessionSeconds((s) => s + 1);
+    }, 1000);
+    const onVis = () => { paused = document.hidden; };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setFocusMode(false);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [focusMode]);
+
+  const stats = useMemo(() => {
+    const trimmed = (content || '').trim();
+    const words = trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+    const chars = (content || '').length;
+    const charsNoSpace = (content || '').replace(/\s/g, '').length;
+    const readMin = Math.max(1, Math.ceil(words / 200));
+    return { words, chars, charsNoSpace, readMin };
+  }, [content]);
+
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   const renderedMarkdown = useMemo(() => {
     const processedContent = (content || '*Nenhum conteúdo ainda...*').replace(/==(.*?)==/g, '<mark>$1</mark>');
