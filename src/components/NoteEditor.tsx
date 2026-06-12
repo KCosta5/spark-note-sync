@@ -790,6 +790,14 @@ export function NoteEditor({ content, onChange, noteId }: NoteEditorProps) {
         >
           <Keyboard className="h-4 w-4" />
         </Button>
+        <Button
+          variant={focusMode ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setFocusMode((v) => !v)}
+          title={focusMode ? 'Sair do modo foco (Esc)' : 'Modo foco (Ctrl+.)'}
+        >
+          {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </Button>
       </div>
 
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
